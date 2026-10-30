@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Comment Studio</title>
+<link rel="stylesheet" href="/dashboard.css">
+</head>
+<body>
+<main class="app">
+  <header class="top">
+    <h1>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 13a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0 0-3 8m3-8 3 8m-5.5-3h5M6.3 6.3a8 8 0 0 0 0 11.4M17.7 6.3a8 8 0 0 1 0 11.4M8.8 8.8a4.5 4.5 0 0 0 0 6.4M15.2 8.8a4.5 4.5 0 0 1 0 6.4"/></svg>
+      LIVE COMMENT STUDIO
+    </h1>
+    <span id="pill" class="pill">Chưa kết nối</span>
+  </header>
+
+  <form id="connectForm" class="panel connect">
+    <label class="grow">
+      <span>Username TikTok đang LIVE</span>
+      <input id="username" value="huyntrang140806" placeholder="@tenkenh hoặc link tiktok.com/@tenkenh/live" autocomplete="off" spellcheck="false">
+    </label>
+    <div class="buttons">
+      <button type="submit" class="primary">Kết nối</button>
+      <button type="button" id="disconnectBtn">Ngắt</button>
+      <button type="button" id="demoBtn" aria-pressed="false">Bình luận giả lập</button>
+    </div>
+    <p id="statusMsg" class="status-msg">Chưa kết nối</p>
+  </form>
+
+  <section class="stats">
+    <div class="stat"><span>Bình luận nhận được</span><b id="sReceived">0</b></div>
+    <div class="stat"><span>Đang hiển thị</span><b id="sShowing">0</b></div>
+    <div class="stat"><span>Đang chờ</span><b id="sWaiting">0</b></div>
+    <div class="stat"><span>Đã lọc</span><b id="sFiltered">0</b></div>
+  </section>
+
+  <div class="cols">
+    <section class="panel feed-panel">
+      <div class="panel-head">
+        <h2>Bình luận trực tiếp</h2>
+        <span id="liveDot" class="live-dot">Mất kết nối máy chủ</span>
+      </div>
+      <ul id="feed" class="feed"></ul>
+      <p id="feedEmpty" class="empty">Chưa có bình luận. Kết nối một phiên LIVE hoặc bật "Bình luận giả lập" để thử.</p>
+    </section>
+
+    <div class="side">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Xem trước overlay trên livestream</h2>
+          <div class="buttons">
+            <select id="themeSel" class="small" aria-label="Giao diện overlay">
+              <option value="/overlay">Giao diện thường</option>
+              <option value="/overlay/chua">Chùa (khung, giữa trong suốt)</option>
+              <option value="/overlay/chua?nen">Chùa (cảnh nền đầy đủ)</option>
+            </select>
+            <select id="frameSel" class="small" aria-label="Khung hình">
+              <option value="1080x1920">Dọc 9:16 (TikTok)</option>
+              <option value="1920x1080">Ngang 16:9</option>
+            </select>
+            <button type="button" id="clearBtn" class="small">Xóa màn hình</button>
+            <button type="button" id="clearMembersBtn" class="small">Xóa DS Phật tử</button>
+          </div>
+        </div>
+        <div class="preview"><iframe title="Xem trước overlay"></iframe></div>
+        <div class="url-row">
+          <code id="overlayUrl"></code>
+          <button type="button" id="copyBtn" class="small">Sao chép URL cho OBS</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Hiển thị</h2>
+        <form id="displayForm" class="grid">
+          <label>Số bình luận cùng lúc <output data-for="maxVisible"></output>
+            <input type="range" name="maxVisible" min="1" max="5" step="1"></label>
+          <label>Tự biến mất sau (giây) <output data-for="durationSec"></output>
+            <input type="range" name="durationSec" min="3" max="15" step="1"></label>
+          <label>Vị trí
+            <select name="position">
+              <option value="bottom-left">Dưới trái</option>
+              <option value="bottom-right">Dưới phải</option>
+              <option value="top-left">Trên trái</option>
+              <option value="top-right">Trên phải</option>
+            </select></label>
+          <label>Màu nhấn <input type="color" name="accent"></label>
+          <label>Cỡ chữ (px) <output data-for="fontSize"></output>
+            <input type="range" name="fontSize" min="12" max="48" step="1"></label>
+          <label>Độ rộng khung (px) <output data-for="width"></output>
+            <input type="range" name="width" min="240" max="1200" step="10"></label>
+          <label>Độ đậm nền <output data-for="bgOpacity"></output>
+            <input type="range" name="bgOpacity" min="0" max="1" step="0.05"></label>
+          <label>Hàng chờ tối đa <input type="number" name="queueMax" min="5" max="500"></label>
+          <label class="check"><input type="checkbox" name="showAvatar"> Hiện avatar</label>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Bộ lọc</h2>
+        <form id="filterForm" class="grid">
+          <label class="wide">Từ khóa cấm <small>(mỗi dòng hoặc cách nhau dấu phẩy, không phân biệt dấu)</small>
+            <textarea name="blockedWords" rows="3"></textarea></label>
+          <label class="wide">Người dùng bị chặn <small>(username, mỗi dòng một người)</small>
+            <textarea name="blockedUsers" rows="2"></textarea></label>
+          <label>Coi là trùng nếu lặp trong (giây) <input type="number" name="dupWindowSec" min="0" max="600"></label>
+          <label>Mỗi người tối đa 1 bình luận / (giây) <input type="number" name="userCooldownSec" min="0" max="120"></label>
+          <label>Độ dài tối đa (ký tự) <input type="number" name="maxLength" min="10" max="500"></label>
+          <label class="check"><input type="checkbox" name="blockLinks"> Chặn bình luận chứa link</label>
+        </form>
+      </section>
+    </div>
+  </div>
+  <footer>Phần mềm chỉ đọc bình luận và hiển thị dưới dạng lớp đồ họa, không đăng bình luận thay người dùng.</footer>
+</main>
+<script type="module" src="/dashboard.js"></script>
+</body>
+</html>

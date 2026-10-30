@@ -1,0 +1,19 @@
+{
+  "name": "live-comment-studio",
+  "version": "1.0.0",
+  "description": "Đọc bình luận TikTok LIVE và hiển thị lên video livestream qua OBS Browser Source",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "tiktok-live-connector": "^2.5.0",
+    "ws": "^8.18.0"
+  }
+}

@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overlay chùa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@500;700&family=Be+Vietnam+Pro:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* Thiết kế cho khung dọc 1080×1920, tự co giãn theo kích thước nguồn trong OBS.
+     Mặc định phần giữa trong suốt để thấy camera; thêm ?nen để có cảnh chùa đầy đủ làm nền. */
+  :root {
+    --font: 30px;
+    --gold: #f2c14e;
+    --gold-dark: #b8860b;
+    --red: #9b1c1c;
+    --red-dark: #5c0f0f;
+    --paper: #fbf1d6;
+    --ink: #3b2412;
+  }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; }
+  body { font-family: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif; }
+  body.preview { background: repeating-conic-gradient(#1e293b 0 25%, #172033 0 50%) 0 0 / 32px 32px; }
+
+  #stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1080px;
+    height: 1920px;
+    transform-origin: 0 0;
+  }
+  #stage > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #scene { display: none; }
+  body.nen #scene { display: block; }
+
+  .lantern { transform-box: fill-box; transform-origin: 50% 0; animation: sway 4s ease-in-out infinite alternate; }
+  .lantern.b { animation-delay: -2s; }
+  @keyframes sway { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+  .smoke { animation: rise 6s ease-out infinite; opacity: 0; }
+  .smoke.b { animation-delay: -2s; }
+  .smoke.c { animation-delay: -4s; }
+  @keyframes rise {
+    0% { opacity: 0; transform: translateY(0) scale(.6); }
+    20% { opacity: .55; }
+    100% { opacity: 0; transform: translateY(-260px) scale(1.6); }
+  }
+  .glow { animation: glow 3s ease-in-out infinite alternate; }
+  @keyframes glow { from { opacity: .55; } to { opacity: 1; } }
+
+  /* Câu đối trên cột */
+  .couplet {
+    position: absolute;
+    top: 620px;
+    width: 64px;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font: 700 34px/64px "Noto Serif", serif;
+    letter-spacing: 6px;
+    color: var(--gold);
+    text-align: center;
+    text-shadow: 0 2px 2px rgba(0, 0, 0, .5);
+  }
+  .couplet.l { left: 0; }
+  .couplet.r { right: 0; }
+
+  /* Thông báo Phật tử mới vào */
+  #welcome {
+    position: absolute;
+    left: 50%;
+    top: 520px;
+    transform: translateX(-50%);
+    padding: 12px 34px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #8a5a00, #e0a82e 50%, #8a5a00);
+    color: #2a1600;
+    font: 600 26px/1.3 "Be Vietnam Pro", sans-serif;
+    white-space: nowrap;
+    max-width: 600px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
+    opacity: 0;
+    transition: opacity .4s, transform .4s;
+  }
+  #welcome.show { opacity: 1; transform: translateX(-50%) translateY(6px); }
+
+  /* Số Phật tử đang dự */
+  #count {
+    position: absolute;
+    left: 50%;
+    top: 600px;
+    transform: translateX(-50%);
+    padding: 6px 22px;
+    border-radius: 10px;
+    background: rgba(92, 15, 15, .88);
+    border: 3px solid var(--gold-dark);
+    color: var(--gold);
+    font: 700 24px/1.3 "Noto Serif", serif;
+    white-space: nowrap;
+  }
+
+  /* Phật tử đứng trong sân chùa: avatar làm đầu, áo tràng, tên bên dưới */
+  .pt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform-origin: 50% 100%;
+    animation: arrive .6s ease-out both;
+  }
+  .pt.leaving { animation: depart .5s ease-in both; }
+  @keyframes arrive { from { opacity: 0; translate: 0 30px; } }
+  @keyframes depart { to { opacity: 0; translate: 0 20px; } }
+  .pt .head {
+    width: 72px; height: 72px; border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #f3e2b3;
+    background: #c08a5a; color: #fff;
+    display: grid; place-items: center;
+    font: 600 30px/1 "Be Vietnam Pro", sans-serif;
+    position: relative; z-index: 1;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, .35);
+  }
+  .pt .robe {
+    width: 96px; height: 92px; margin-top: -10px;
+    background: linear-gradient(180deg, #8d6e63, #6d4c41);
+    border-radius: 44px 44px 14px 14px;
+    position: relative;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, .35);
+  }
+  .pt .robe::before { /* cổ áo chéo */
+    content: ""; position: absolute; left: 50%; top: 6px; width: 34px; height: 34px;
+    border-left: 4px solid #4e342e; border-bottom: 4px solid #4e342e;
+    transform: translateX(-50%) rotate(-45deg); border-radius: 0 0 0 6px;
+  }
+  .pt .robe::after { /* tay chắp */
+    content: "🙏"; position: absolute; left: 50%; top: 40px; transform: translateX(-50%);
+    font-size: 30px;
+  }
+  .pt .nm {
+    margin-top: 6px; max-width: 160px;
+    padding: 2px 10px; border-radius: 999px;
+    background: rgba(59, 36, 18, .85); color: var(--paper);
+    font: 600 19px/1.3 "Be Vietnam Pro", sans-serif;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .pt.speaking .head { border-color: var(--gold); box-shadow: 0 0 0 6px rgba(242, 193, 78, .45), 0 4px 10px rgba(0, 0, 0, .35); }
+  .pt.speaking .robe { animation: bob .8s ease-in-out infinite alternate; }
+  @keyframes bob { to { transform: translateY(-4px); } }
+  /* Bước đi: nhún nhẹ, lắc người */
+  .pt.walking .head, .pt.walking .robe { animation: step .55s ease-in-out infinite alternate; }
+  .pt.walking .robe { animation-name: sway-robe; }
+  @keyframes step { from { transform: translateY(0) rotate(-3deg); } to { transform: translateY(-6px) rotate(3deg); } }
+  @keyframes sway-robe { from { transform: translateY(0) rotate(-2deg); } to { transform: translateY(-4px) rotate(2deg); } }
+  /* Dừng lại chắp tay vái */
+  .pt.bowing .head { animation: bow 2s ease-in-out infinite; }
+  @keyframes bow { 0%, 100% { transform: none; } 40%, 60% { transform: translateY(10px) rotate(0deg) scale(.96); } }
+
+  /* Bong bóng bình luận trên đầu */
+  .bubble {
+    position: absolute;
+    bottom: calc(100% + 14px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 420px;
+    padding: 12px 18px;
+    border-radius: 18px;
+    background: var(--paper);
+    border: 3px solid var(--red);
+    color: var(--ink);
+    font: 500 var(--font)/1.3 "Be Vietnam Pro", sans-serif;
+    overflow-wrap: anywhere;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .4);
+    animation: pop .35s cubic-bezier(.2, .9, .3, 1.3) both;
+  }
+  .bubble::after { /* đuôi bong bóng */
+    content: ""; position: absolute; top: 100%; left: 50%;
+    border: 14px solid transparent; border-top-color: var(--red);
+    transform: translateX(-50%);
+  }
+  .edge-l .bubble { left: 0; transform: none; }
+  .edge-l .bubble::after { left: 60px; }
+  .edge-r .bubble { left: auto; right: 0; transform: none; }
+  .edge-r .bubble::after { left: auto; right: 46px; transform: none; }
+  .bubble.leaving { animation: unpop .3s ease-in both; }
+  @keyframes pop { from { opacity: 0; scale: .6; } }
+  @keyframes unpop { to { opacity: 0; scale: .8; } }
+</style>
+</head>
+<body>
+<div id="stage">
+  <!-- Cảnh nền đầy đủ (chỉ hiện khi có ?nen) -->
+  <svg id="scene" viewBox="0 0 1080 1920" preserveAspectRatio="none" aria-hidden="true">
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#3b2a5a"/>
+        <stop offset=".35" stop-color="#c0607a"/>
+        <stop offset=".6" stop-color="#f6a96b"/>
+        <stop offset="1" stop-color="#fde4b4"/>
+      </linearGradient>
+      <radialGradient id="sun" cx=".5" cy=".5" r=".5">
+        <stop offset="0" stop-color="#fff6d6"/>
+        <stop offset=".5" stop-color="#ffd27a" stop-opacity=".8"/>
+        <stop offset="1" stop-color="#ffd27a" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="1080" height="1920" fill="url(#sky)"/>
+    <circle cx="540" cy="900" r="300" fill="url(#sun)"/>
+    <path d="M0 1150 L140 980 L260 1080 L400 900 L540 1040 L700 880 L860 1060 L960 960 L1080 1080 V1920 H0Z" fill="#7a4a6e" opacity=".55"/>
+    <path d="M0 1260 L180 1110 L330 1220 L520 1090 L720 1230 L900 1120 L1080 1240 V1920 H0Z" fill="#4e2f4f" opacity=".7"/>
+    <!-- Tháp chùa phía xa -->
+    <g fill="#3a1f2e">
+      <rect x="447" y="1238" width="186" height="62"/>
+      <path d="M372 1222 Q400 1240 420 1238 H660 Q680 1240 708 1222 L674 1204 H406Z"/>
+      <rect x="458" y="1146" width="165" height="62"/>
+      <path d="M389 1130 Q417 1148 437 1146 H643 Q663 1148 691 1130 L657 1112 H423Z"/>
+      <rect x="468" y="1054" width="144" height="62"/>
+      <path d="M406 1038 Q434 1056 454 1054 H626 Q646 1056 674 1038 L640 1020 H440Z"/>
+      <rect x="479" y="962" width="123" height="62"/>
+      <path d="M423 946 Q451 964 471 962 H609 Q629 964 657 946 L623 928 H457Z"/>
+      <rect x="489" y="870" width="102" height="62"/>
+      <path d="M440 854 Q468 872 488 870 H592 Q612 872 640 854 L606 836 H474Z"/>
+      <rect x="500" y="778" width="81" height="62"/>
+      <path d="M457 762 Q485 780 505 778 H575 Q595 780 623 762 L589 744 H491Z"/>
+      <rect x="510" y="686" width="60" height="62"/>
+      <path d="M474 670 Q502 688 522 686 H558 Q578 688 606 670 L572 652 H508Z"/>
+      <path d="M528 652 L540 576 L552 652Z"/>
+      <circle cx="540" cy="650" r="12"/>
+    </g>
+    <!-- Cây hai bên -->
+    <g fill="#2c3b2a">
+      <ellipse cx="170" cy="1250" rx="170" ry="120"/>
+      <ellipse cx="930" cy="1270" rx="190" ry="130"/>
+    </g>
+    <rect y="1300" width="1080" height="620" fill="#cdb38a"/>
+    <path d="M0 1300 H1080" stroke="#a88c60" stroke-width="6"/>
+    <g stroke="#b89b6e" stroke-width="2" opacity=".6">
+      <path d="M0 1400 H1080 M0 1500 H1080 M0 1600 H1080"/>
+      <path d="M540 1300 L200 1920 M540 1300 L880 1920 M540 1300 V1920"/>
+    </g>
+  </svg>
+
+  <!-- Khung cổng chùa: mái, cột, đèn lồng, sân, hồ sen (luôn hiện) -->
+  <svg viewBox="0 0 1080 1920" aria-hidden="true">
+    <defs>
+      <pattern id="tiles" width="22" height="40" patternUnits="userSpaceOnUse">
+        <rect width="22" height="40" fill="#7e1d14"/>
+        <path d="M0 0 V40" stroke="#5a120c" stroke-width="5"/>
+        <path d="M0 38 Q11 30 22 38" stroke="#9c2a1f" stroke-width="3" fill="none"/>
+      </pattern>
+      <linearGradient id="pillar" x1="0" x2="1">
+        <stop offset="0" stop-color="#5c0f0f"/>
+        <stop offset=".45" stop-color="#b52525"/>
+        <stop offset="1" stop-color="#5c0f0f"/>
+      </linearGradient>
+      <linearGradient id="gold" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stop-color="#ffe08a"/>
+        <stop offset="1" stop-color="#b8860b"/>
+      </linearGradient>
+      <radialGradient id="lanternGlow" cx=".5" cy=".5" r=".5">
+        <stop offset="0" stop-color="#ffcf6b" stop-opacity=".7"/>
+        <stop offset="1" stop-color="#ffcf6b" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="water" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stop-color="#2f6b6a"/>
+        <stop offset="1" stop-color="#173e45"/>
+      </linearGradient>
+      <linearGradient id="stone" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stop-color="#d9c7a5"/>
+        <stop offset="1" stop-color="#a99070"/>
+      </linearGradient>
+      <g id="lotus">
+        <path d="M0 0 C-14 -20 -10 -44 0 -56 C10 -44 14 -20 0 0Z" fill="#f7a8c0"/>
+        <path d="M0 0 C-30 -8 -40 -30 -36 -44 C-20 -38 -8 -22 0 0Z" fill="#f48fb1"/>
+        <path d="M0 0 C30 -8 40 -30 36 -44 C20 -38 8 -22 0 0Z" fill="#f48fb1"/>
+        <path d="M0 0 C-36 4 -54 -10 -58 -22 C-38 -22 -16 -12 0 0Z" fill="#ec7aa0"/>
+        <path d="M0 0 C36 4 54 -10 58 -22 C38 -22 16 -12 0 0Z" fill="#ec7aa0"/>
+        <circle cy="-14" r="6" fill="#ffd54f"/>
+      </g>
+      <g id="lanternShape">
+        <rect x="-8" y="0" width="16" height="40" fill="#3b2412"/>
+        <ellipse cx="0" cy="110" rx="120" ry="120" fill="url(#lanternGlow)" class="glow"/>
+        <rect x="-34" y="40" width="68" height="14" rx="4" fill="url(#gold)"/>
+        <ellipse cx="0" cy="110" rx="58" ry="62" fill="#d42a1e"/>
+        <path d="M-30 58 Q-46 110 -30 164 M0 48 V172 M30 58 Q46 110 30 164" stroke="#a51a12" stroke-width="3" fill="none"/>
+        <text x="0" y="122" text-anchor="middle" font-family="Noto Serif, serif" font-weight="700" font-size="36" fill="#ffd77a">卍</text>
+        <rect x="-34" y="166" width="68" height="14" rx="4" fill="url(#gold)"/>
+        <path d="M-10 180 L-14 250 M0 180 V258 M10 180 L14 250" stroke="#e0a82e" stroke-width="5" stroke-linecap="round"/>
+      </g>
+    </defs>
+
+    <!-- Cột -->
+    <rect x="0" y="330" width="64" height="1590" fill="url(#pillar)"/>
+    <rect x="1016" y="330" width="64" height="1590" fill="url(#pillar)"/>
+    <g fill="url(#gold)">
+      <rect x="0" y="372" width="64" height="16"/><rect x="1016" y="372" width="64" height="16"/>
+      <rect x="0" y="1560" width="64" height="16"/><rect x="1016" y="1560" width="64" height="16"/>
+    </g>
+
+    <!-- Mái tầng dưới -->
+    <path d="M-20 250 Q30 236 70 196 L1010 196 Q1050 236 1100 250 L1100 330 Q540 352 -20 330Z" fill="url(#tiles)"/>
+    <path d="M-20 330 Q540 352 1100 330" stroke="url(#gold)" stroke-width="10" fill="none"/>
+    <!-- Xà ngang -->
+    <rect x="0" y="336" width="1080" height="40" fill="#5c0f0f"/>
+    <path d="M0 340 H1080 M0 372 H1080" stroke="url(#gold)" stroke-width="4"/>
+
+    <!-- Mái tầng trên, đầu đao cong -->
+    <path d="M150 70 Q120 54 96 20 Q104 70 150 110 L80 180 Q40 182 14 150 Q22 210 96 214 Q540 250 984 214 Q1058 210 1066 150 Q1040 182 1000 180 L930 110 Q976 70 984 20 Q960 54 930 70Z" fill="url(#tiles)"/>
+    <path d="M96 214 Q540 250 984 214" stroke="url(#gold)" stroke-width="8" fill="none"/>
+    <!-- Bờ nóc vàng, lưỡng long chầu nguyệt cách điệu -->
+    <path d="M150 70 H930" stroke="url(#gold)" stroke-width="14" stroke-linecap="round"/>
+    <path d="M96 20 Q118 62 150 70 M984 20 Q962 62 930 70" stroke="url(#gold)" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <g fill="none" stroke="url(#gold)" stroke-width="9" stroke-linecap="round">
+      <path d="M260 66 C300 18 360 18 380 44 C396 64 430 60 452 40"/>
+      <path d="M820 66 C780 18 720 18 700 44 C684 64 650 60 628 40"/>
+    </g>
+    <circle cx="540" cy="34" r="26" fill="#ffd54f" class="glow"/>
+    <path d="M540 4 Q556 20 548 34 Q562 24 566 40 Q556 64 540 62 Q524 64 514 40 Q518 24 532 34 Q524 20 540 4Z" fill="#ff9f43" opacity=".85"/>
+
+    <!-- Bảng hiệu -->
+    <rect x="330" y="360" width="420" height="84" rx="8" fill="#5c0f0f" stroke="url(#gold)" stroke-width="6"/>
+    <text x="540" y="415" text-anchor="middle" font-family="Noto Serif, serif" font-weight="700" font-size="36" fill="#ffd77a" letter-spacing="2">NAM MÔ A DI ĐÀ PHẬT</text>
+
+    <!-- Đèn lồng -->
+    <g transform="translate(170 376)"><g class="lantern"><use href="#lanternShape"/></g></g>
+    <g transform="translate(910 376)"><g class="lantern b"><use href="#lanternShape"/></g></g>
+
+    <!-- Sân đá và bậc thềm -->
+    <path d="M0 1640 H1080 V1920 H0Z" fill="url(#stone)"/>
+    <path d="M0 1640 H1080 M0 1700 H1080" stroke="#8c7456" stroke-width="4"/>
+    <!-- Hồ sen -->
+    <path d="M0 1760 Q540 1730 1080 1760 V1920 H0Z" fill="url(#water)"/>
+    <g fill="#3f8f4f">
+      <ellipse cx="120" cy="1830" rx="70" ry="22"/>
+      <ellipse cx="330" cy="1880" rx="80" ry="24"/>
+      <ellipse cx="610" cy="1820" rx="64" ry="20"/>
+      <ellipse cx="820" cy="1876" rx="84" ry="24"/>
+      <ellipse cx="990" cy="1820" rx="66" ry="20"/>
+    </g>
+    <use href="#lotus" transform="translate(150 1832)"/>
+    <use href="#lotus" transform="translate(470 1862) scale(1.15)"/>
+    <use href="#lotus" transform="translate(760 1830) scale(.9)"/>
+    <use href="#lotus" transform="translate(960 1870) scale(1.1)"/>
+
+    <!-- Lư hương và khói -->
+    <g transform="translate(540 1640)">
+      <g fill="#cfd6d6" opacity=".9">
+        <ellipse class="smoke" cx="-14" cy="-70" rx="16" ry="30"/>
+        <ellipse class="smoke b" cx="4" cy="-70" rx="14" ry="28"/>
+        <ellipse class="smoke c" cx="16" cy="-70" rx="16" ry="30"/>
+      </g>
+      <path d="M-10 -56 V-90 M0 -56 V-96 M10 -56 V-90" stroke="#8b3a1a" stroke-width="4"/>
+      <circle cx="-10" cy="-92" r="4" fill="#ff7043"/><circle cx="0" cy="-98" r="4" fill="#ff7043"/><circle cx="10" cy="-92" r="4" fill="#ff7043"/>
+      <path d="M-80 -56 H80 Q76 10 40 30 H-40 Q-76 10 -80 -56Z" fill="#8a6a2f"/>
+      <path d="M-90 -62 H90 V-50 H-90Z" fill="url(#gold)"/>
+      <path d="M-40 30 L-56 66 M40 30 L56 66 M0 30 V66" stroke="#6b4f1f" stroke-width="10" stroke-linecap="round"/>
+    </g>
+  </svg>
+
+  <div class="couplet l">PHƯỚC ĐIỀN</div>
+  <div class="couplet r">TỪ BI HỶ XẢ</div>
+
+  <div id="welcome" role="status"></div>
+
+  <div id="count">Phật tử đang dự: 0</div>
+  <div id="crowd"></div>
+</div>
+
+<script type="module">
+  import { connectWS, initials } from '/ws-client.js';
+
+  const $ = (id) => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  if (params.has('nen')) document.body.classList.add('nen');
+  if (params.has('preview')) document.body.classList.add('preview');
+
+  const stage = $('stage');
+  // Co giãn khung 1080×1920 vừa với nguồn OBS, căn giữa
+  const fit = () => {
+    const { clientWidth: w, clientHeight: h } = document.documentElement;
+    const s = Math.min(w / 1080, h / 1920);
+    stage.style.transform = `translate(${(w - 1080 * s) / 2}px, ${(h - 1920 * s) / 2}px) scale(${s})`;
+  };
+  new ResizeObserver(fit).observe(document.documentElement);
+  fit();
+
+  function avatarEl(person, cls) {
+    let el;
+    if (person.avatar) {
+      el = Object.assign(document.createElement('img'), { src: person.avatar, alt: '', referrerPolicy: 'no-referrer' });
+      el.onerror = () => el.replaceWith(avatarEl({ ...person, avatar: null }, cls));
+    } else {
+      el = Object.assign(document.createElement('div'), { textContent: initials(person.nickname || person.username) });
+    }
+    el.className = cls;
+    return el;
+  }
+
+  // ---------- Sân chùa: mỗi người xem là một Phật tử ----------
+  // 3 lối đi trong sân (vị trí chân); lối xa nhỏ hơn và đi chậm hơn để có chiều sâu
+  const LANES = [
+    { y: 1250, s: 0.78 },
+    { y: 1420, s: 0.89 },
+    { y: 1600, s: 1 },
+  ];
+  const MAX_PEOPLE = 16;
+  const X_MIN = 130;
+  const X_MAX = 950;
+  const crowd = Array(MAX_PEOPLE).fill(null); // { person, el, lastActive, lane, x, dir, speed, pauseUntil, nextPauseAt }
+  const rand = (a, b) => a + Math.random() * (b - a);
+  let total = 0;
+  let viewers = 0;
+
+  function renderCount() {
+    $('count').textContent = viewers ? `Phật tử đang dự: ${viewers}` : `Phật tử đã về: ${total}`;
+  }
+
+  function figure(person) {
+    const el = document.createElement('div');
+    el.className = 'pt walking';
+    el.append(
+      avatarEl(person, 'head'),
+      Object.assign(document.createElement('div'), { className: 'robe' }),
+      Object.assign(document.createElement('div'), { className: 'nm', textContent: person.nickname || person.username }),
+    );
+    $('crowd').append(el);
+    return el;
+  }
+
+  // Đưa một người vào sân (nếu chưa có). Hết chỗ thì thay người im lặng lâu nhất.
+  function place(person, speaking = new Set()) {
+    let i = crowd.findIndex((c) => c?.person.username === person.username);
+    if (i >= 0) {
+      crowd[i].lastActive = Date.now();
+      return crowd[i];
+    }
+    i = crowd.findIndex((c) => !c);
+    if (i < 0) {
+      let oldest = -1;
+      crowd.forEach((c, j) => {
+        if (!speaking.has(c.person.username) && (oldest < 0 || c.lastActive < crowd[oldest].lastActive)) oldest = j;
+      });
+      if (oldest < 0) return null;
+      i = oldest;
+      const old = crowd[i].el;
+      old.classList.add('leaving');
+      old.addEventListener('animationend', () => old.remove(), { once: true });
+    }
+    const now = performance.now();
+    crowd[i] = {
+      person,
+      el: figure(person),
+      lastActive: Date.now(),
+      lane: LANES[i % LANES.length],
+      x: rand(X_MIN, X_MAX),
+      dir: Math.random() < 0.5 ? -1 : 1,
+      speed: rand(28, 60),
+      pauseUntil: 0,
+      nextPauseAt: now + rand(3000, 9000),
+    };
+    move(crowd[i]);
+    return crowd[i];
+  }
+
+  function move(p) {
+    const { y, s } = p.lane;
+    p.el.style.transform = `translate(${p.x - 75}px, ${y}px) translateY(-100%) scale(${s})`;
+    if (!p.el.classList.contains('speaking')) p.el.style.zIndex = String(y);
+    // Bong bóng không tràn ra ngoài khung khi người đứng sát mép
+    p.el.classList.toggle('edge-l', p.x < 300);
+    p.el.classList.toggle('edge-r', p.x > 780);
+  }
+
+  // Vòng lặp đi lại: đi theo lối, tới mép thì quay lại, thỉnh thoảng dừng chắp tay vái
+  let last = performance.now();
+  function tick(now) {
+    const dt = Math.min(0.1, (now - last) / 1000);
+    last = now;
+    for (const p of crowd) {
+      if (!p) continue;
+      const speaking = p.el.classList.contains('speaking');
+      if (!speaking && now >= p.nextPauseAt && now >= p.pauseUntil) {
+        p.pauseUntil = now + rand(1500, 4000);
+        p.nextPauseAt = p.pauseUntil + rand(4000, 10000);
+        if (Math.random() < 0.35) p.dir *= -1; // dừng xong có khi quay đầu
+      }
+      const walking = !speaking && now >= p.pauseUntil;
+      p.el.classList.toggle('walking', walking);
+      p.el.classList.toggle('bowing', !speaking && !walking);
+      if (walking) {
+        p.x += p.dir * p.speed * p.lane.s * dt;
+        if (p.x < X_MIN) { p.x = X_MIN; p.dir = 1; }
+        if (p.x > X_MAX) { p.x = X_MAX; p.dir = -1; }
+      }
+      move(p);
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  function addMember(m) {
+    place(m, speakingNow);
+  }
+
+  // ---------- Lời chào Phật tử mới (xếp hàng, không dồn quá nhiều) ----------
+  const welcomeQueue = [];
+  let welcoming = false;
+  function welcome(m) {
+    welcomeQueue.push(m);
+    if (welcomeQueue.length > 4) welcomeQueue.splice(0, welcomeQueue.length - 4);
+    if (!welcoming) nextWelcome();
+  }
+  function nextWelcome() {
+    const m = welcomeQueue.shift();
+    const el = $('welcome');
+    if (!m) {
+      welcoming = false;
+      el.classList.remove('show');
+      return;
+    }
+    welcoming = true;
+    el.textContent = `🙏 A Di Đà Phật! Phật tử ${m.nickname || m.username} vừa về chùa`;
+    el.classList.add('show');
+    setTimeout(() => {
+      el.classList.remove('show');
+      setTimeout(nextWelcome, 450);
+    }, 2600);
+  }
+
+  // ---------- Bình luận hiện thành bong bóng trên đầu người bình luận ----------
+  let speakingNow = new Set();
+  function renderComments(showing) {
+    const latest = new Map(); // username -> bình luận mới nhất đang hiển thị
+    for (const c of showing) latest.set(c.username, c);
+    speakingNow = new Set(latest.keys());
+
+    for (const c of latest.values()) {
+      const spot = place(c, speakingNow);
+      if (!spot) continue;
+      spot.el.classList.add('speaking');
+      spot.el.style.zIndex = '5000'; // bong bóng nổi trên mọi người khác
+      let bubble = spot.el.querySelector('.bubble:not(.leaving)');
+      if (bubble?.dataset.id === c.id) continue;
+      bubble?.remove();
+      bubble = Object.assign(document.createElement('div'), { className: 'bubble', textContent: c.text });
+      bubble.dataset.id = c.id;
+      spot.el.prepend(bubble);
+    }
+    for (const spot of crowd) {
+      if (!spot || speakingNow.has(spot.person.username)) continue;
+      spot.el.classList.remove('speaking');
+      spot.el.style.zIndex = String(spot.lane.y);
+      const bubble = spot.el.querySelector('.bubble:not(.leaving)');
+      if (bubble) {
+        bubble.classList.add('leaving');
+        bubble.addEventListener('animationend', () => bubble.remove(), { once: true });
+      }
+    }
+  }
+
+  function applySettings(s) {
+    document.documentElement.style.setProperty('--font', `${Math.min(s.fontSize, 34)}px`);
+  }
+
+  connectWS((msg) => {
+    switch (msg.type) {
+      case 'hello':
+        applySettings(msg.settings);
+        for (const spot of crowd) spot?.el.remove();
+        crowd.fill(null);
+        msg.members.slice(-MAX_PEOPLE).forEach((m) => place(m));
+        total = msg.members.length;
+        viewers = msg.viewers;
+        renderCount();
+        renderComments(msg.showing);
+        break;
+      case 'member':
+        total = msg.total;
+        addMember(msg.member);
+        renderCount();
+        if (msg.isNew) welcome(msg.member);
+        break;
+      case 'members':
+        total = 0;
+        for (const spot of crowd) spot?.el.remove();
+        crowd.fill(null);
+        renderCount();
+        break;
+      case 'viewers':
+        viewers = msg.viewers;
+        renderCount();
+        break;
+      case 'settings': applySettings(msg.settings); break;
+      case 'showing': renderComments(msg.showing); break;
+    }
+  });
+</script>
+</body>
+</html>

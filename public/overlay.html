@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overlay bình luận</title>
+<style>
+  :root {
+    --accent: #2dd4bf;
+    --font: 30px;
+    --width: 760px;
+    --bg: rgba(15, 23, 42, 0.85);
+  }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: transparent; /* OBS sẽ thấy nền trong suốt */
+    overflow: hidden;
+    font-family: "Be Vietnam Pro", "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  body.preview {
+    background:
+      linear-gradient(135deg, rgba(45, 212, 191, .08), transparent 60%),
+      repeating-conic-gradient(#1e293b 0 25%, #172033 0 50%) 0 0 / 24px 24px;
+  }
+  #stack {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--font) * 0.5);
+    width: min(var(--width), calc(100vw - 48px));
+    margin: 24px;
+  }
+  .top-left     { top: 0; left: 0; }
+  .top-right    { top: 0; right: 0; }
+  .bottom-left  { bottom: 0; left: 0; flex-direction: column-reverse !important; }
+  .bottom-right { bottom: 0; right: 0; flex-direction: column-reverse !important; }
+
+  .card {
+    display: flex;
+    gap: calc(var(--font) * 0.6);
+    align-items: flex-start;
+    padding: calc(var(--font) * 0.55) calc(var(--font) * 0.75);
+    background: var(--bg);
+    border-radius: calc(var(--font) * 0.6);
+    border-left: 4px solid var(--accent);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, .35);
+    color: #f1f5f9;
+    font-size: var(--font);
+    line-height: 1.35;
+    animation: enter .35s cubic-bezier(.2, .9, .3, 1.2) both;
+  }
+  .card.leaving { animation: leave .35s ease-in both; }
+  .avatar {
+    flex: none;
+    width: calc(var(--font) * 2);
+    height: calc(var(--font) * 2);
+    border-radius: 50%;
+    object-fit: cover;
+    background: #334155;
+    color: var(--accent);
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+  }
+  .no-avatar .avatar { display: none; }
+  .body { min-width: 0; }
+  .name {
+    color: var(--accent);
+    font-weight: 600;
+    font-size: .8em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .text { overflow-wrap: anywhere; }
+
+  @keyframes enter { from { opacity: 0; transform: translateY(12px) scale(.96); } }
+  @keyframes leave { to   { opacity: 0; transform: translateX(-24px); } }
+  .top-right .card.leaving, .bottom-right .card.leaving { animation-name: leave-r; }
+  @keyframes leave-r { to { opacity: 0; transform: translateX(24px); } }
+</style>
+</head>
+<body>
+<div id="stack" class="bottom-left"></div>
+<script type="module">
+  import { connectWS, initials } from '/ws-client.js';
+
+  const stack = document.getElementById('stack');
+  const root = document.documentElement.style;
+  const nodes = new Map(); // id -> element
+  if (new URLSearchParams(location.search).has('preview')) document.body.classList.add('preview');
+
+  function applySettings(s) {
+    stack.className = s.position;
+    document.body.classList.toggle('no-avatar', !s.showAvatar);
+    root.setProperty('--accent', s.accent);
+    root.setProperty('--font', `${s.fontSize}px`);
+    root.setProperty('--width', `${s.width}px`);
+    root.setProperty('--bg', `rgba(15, 23, 42, ${s.bgOpacity})`);
+  }
+
+  function card(c) {
+    const el = document.createElement('div');
+    el.className = 'card';
+    let avatar;
+    if (c.avatar) {
+      avatar = document.createElement('img');
+      avatar.src = c.avatar;
+      avatar.referrerPolicy = 'no-referrer';
+      avatar.alt = '';
+      avatar.onerror = () => avatar.replaceWith(Object.assign(document.createElement('div'), { className: 'avatar', textContent: initials(c.nickname) }));
+    } else {
+      avatar = document.createElement('div');
+      avatar.textContent = initials(c.nickname || c.username);
+    }
+    avatar.classList.add('avatar');
+    const body = document.createElement('div');
+    body.className = 'body';
+    const name = Object.assign(document.createElement('div'), { className: 'name', textContent: `@${c.username}` });
+    const text = Object.assign(document.createElement('div'), { className: 'text', textContent: c.text });
+    body.append(name, text);
+    el.append(avatar, body);
+    return el;
+  }
+
+  function render(showing) {
+    const ids = new Set(showing.map((c) => c.id));
+    for (const [id, el] of nodes) {
+      if (ids.has(id)) continue;
+      nodes.delete(id);
+      el.classList.add('leaving');
+      el.addEventListener('animationend', () => el.remove(), { once: true });
+    }
+    for (const c of showing) {
+      if (nodes.has(c.id)) continue;
+      const el = card(c);
+      nodes.set(c.id, el);
+      stack.append(el);
+    }
+  }
+
+  connectWS((msg) => {
+    if (msg.type === 'hello') {
+      applySettings(msg.settings);
+      render(msg.showing);
+    } else if (msg.type === 'settings') applySettings(msg.settings);
+    else if (msg.type === 'showing') render(msg.showing);
+  });
+</script>
+</body>
+</html>
