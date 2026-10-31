@@ -13,7 +13,12 @@ export function connectWS(onMessage, onOpenChange = () => {}) {
       retry = 0;
       onOpenChange(true);
     };
-    ws.onmessage = (e) => onMessage(JSON.parse(e.data));
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      // Lệnh tải lại từ dashboard: overlay trong OBS/LIVE Studio tự nạp bản mới, không cần bấm Refresh
+      if (msg.type === 'reload' && !location.pathname.startsWith('/dashboard')) return location.reload();
+      onMessage(msg);
+    };
     ws.onclose = () => {
       onOpenChange(false);
       setTimeout(open, Math.min(5000, 500 * 2 ** retry++));

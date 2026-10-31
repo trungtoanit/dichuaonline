@@ -3,7 +3,8 @@ import { connectWS, initials } from '/ws-client.js';
 const $ = (id) => document.getElementById(id);
 const fmt = new Intl.NumberFormat('vi-VN');
 const FEED_SIZE = 200;
-const forms = [$('displayForm'), $('filterForm')];
+const RANK_TITLES = ['Học việc', 'Công nhân', 'Thợ đứng máy', 'Tổ trưởng', 'Trưởng ca', 'Quản đốc', 'Phó giám đốc', 'Giám đốc nhà máy'];
+const forms = [$('displayForm'), $('filterForm'), $('auditForm')];
 let settings = null;
 let status = { state: 'idle', message: 'Chưa kết nối' };
 let demo = false;
@@ -19,21 +20,85 @@ function onMessage(msg) {
       $('feed').replaceChildren();
       msg.feed.forEach(addComment);
       setStats(msg.stats);
+      logos = msg.logos ?? {};
+      auditVisits = msg.auditVisits ?? {};
+      onlineSet = new Set(msg.online ?? []);
+      salaries = msg.salaries ?? {};
+      jobs = msg.jobs ?? {};
+      gifts = msg.gifts ?? [];
+      renderGifts();
+      if (msg.music) renderMusic(msg.music);
+      viewerMap.clear();
+      for (const m of msg.members ?? []) viewerMap.set(m.username, m);
+      for (const [name, r] of Object.entries(msg.ranks ?? {})) viewerRanks.set(name, r);
+      renderViewers();
       setSettings(msg.settings);
       demo = msg.demo;
       setStatus(msg.status);
       // Lấy username từ máy chủ, không dùng giá trị trình duyệt tự khôi phục khi tải lại trang
-      if (document.activeElement !== $('username')) $('username').value = msg.status.username || msg.settings.username;
+      if (document.activeElement !== $('username')) $('username').value = msg.settings.username;
       // Mở / F5 dashboard thì tự kết nối nếu chưa kết nối (hoặc lần trước bị lỗi)
       if (!['connected', 'connecting', 'reconnecting'].includes(msg.status.state) && $('username').value) {
         server.send({ type: 'connect', username: $('username').value });
       }
       break;
-    case 'comment': addComment(msg.comment); break;
+    case 'comment':
+      addComment(msg.comment);
+      // Người bình luận cũng là người đang xem: thêm vào Top viewers nếu chưa có
+      if (!msg.comment.old) {
+        if (!touchViewer(msg.comment.username)) viewerMap.set(msg.comment.username, { ...msg.comment, at: Date.now(), lastAt: Date.now() });
+        renderViewersSoon();
+      }
+      break;
     case 'stats': setStats(msg.stats); break;
     case 'status': setStatus(msg.status); break;
     case 'settings': setSettings(msg.settings); break;
     case 'demo': demo = msg.demo; setStatus(status); break;
+    case 'music': renderMusic(msg.music); break;
+    case 'notice': alert(msg.text); break;
+    case 'gift':
+      gifts.push(msg.entry);
+      renderGifts();
+      break;
+    case 'salary':
+      salaries = msg.salaries;
+      renderViewersSoon();
+      break;
+    case 'job':
+    case 'machine':
+      jobs = msg.jobs;
+      renderViewersSoon();
+      break;
+    case 'fired':
+      jobs = msg.jobs;
+      renderViewersSoon();
+      break;
+    case 'auditVisits':
+      auditVisits = msg.visits;
+      renderAuditButtons(settings?.auditTeams ?? []);
+      break;
+    case 'online':
+      onlineSet = new Set(msg.users);
+      renderViewersSoon();
+      break;
+    case 'member':
+      viewerMap.set(msg.member.username, { ...msg.member, lastAt: Date.now() });
+      renderViewersSoon();
+      break;
+    case 'memberUpdate':
+      viewerMap.set(msg.member.username, { ...viewerMap.get(msg.member.username), ...msg.member });
+      renderViewersSoon();
+      break;
+    case 'members':
+      viewerMap.clear();
+      renderViewersSoon();
+      break;
+    case 'rank':
+      viewerRanks.set(msg.entry.username, msg.entry);
+      touchViewer(msg.entry.username);
+      renderViewersSoon();
+      break;
+    case 'logos': logos = msg.logos; renderAuditButtons(settings?.auditTeams ?? []); break;
   }
 }
 
@@ -46,6 +111,7 @@ $('disconnectBtn').onclick = () => server.send({ type: 'disconnect' });
 $('demoBtn').onclick = () => server.send({ type: 'demo', on: !demo });
 $('clearBtn').onclick = () => server.send({ type: 'clear' });
 $('clearMembersBtn').onclick = () => server.send({ type: 'clearMembers' });
+$('reloadBtn').onclick = () => server.send({ type: 'reloadOverlays' });
 
 function setStatus(s) {
   status = s;
@@ -83,17 +149,83 @@ function addComment(c) {
   const body = document.createElement('div');
   const name = Object.assign(document.createElement('div'), { className: 'name', textContent: `@${c.username}` });
   if (c.filtered) name.append(Object.assign(document.createElement('span'), { className: 'tag', textContent: c.filtered }));
+  // Thời gian bình luận: bình luận cũ lấy giờ TikTok ghi nhận, bình luận mới lấy lúc nhận được
+  const at = c.old && c.createdAt ? c.createdAt : c.at;
+  const ago = Object.assign(document.createElement('span'), { className: 'ago', textContent: timeAgo(at) });
+  ago.dataset.at = at ?? '';
+  name.append(ago);
   body.append(name, Object.assign(document.createElement('div'), { className: 'text', textContent: c.text }));
 
-  const block = Object.assign(document.createElement('button'), { type: 'button', className: 'block small', textContent: 'Chặn' });
-  block.title = `Chặn @${c.username}`;
+  // Chặn / Bỏ chặn người bình luận (nút tự đổi theo danh sách chặn hiện tại)
+  const block = Object.assign(document.createElement('button'), { type: 'button', className: 'block small' });
+  block.dataset.user = c.username.toLowerCase();
+  paintBlock(block);
   block.onclick = () => {
     const users = new Set(settings.blockedUsers);
-    users.add(c.username.toLowerCase());
+    const u = block.dataset.user;
+    if (users.has(u)) users.delete(u);
+    else users.add(u);
     server.send({ type: 'settings', patch: { blockedUsers: [...users] } });
   };
 
-  li.append(avatar, body, block);
+  // Sếp Toán thăng/hạ chức cho người bình luận
+  const promote = Object.assign(document.createElement('select'), { className: 'promote small', title: `Thăng chức cho @${c.username}` });
+  promote.append(
+    new Option('⬆ Thăng chức…', ''),
+    ...RANK_TITLES.map((t) => new Option(t, t)),
+    new Option('🛡 Xuống làm Bảo vệ', 'job:bao-ve'),
+    new Option('🧹 Xuống làm Lao công', 'job:lao-cong'),
+    new Option('📝 Làm Thư ký', 'job:thu-ky'),
+    new Option('🧮 Làm Kế toán', 'job:ke-toan'),
+    new Option('↩ Về lại xưởng', 'job:'),
+  );
+  promote.onchange = () => {
+    const v = promote.value;
+    if (!v) return;
+    if (v.startsWith('job:')) server.send({ type: 'setJob', username: c.username, job: v.slice(4) });
+    else server.send({ type: 'setRank', username: c.username, title: v, byBoss: true });
+    promote.value = '';
+  };
+  // Sếp Toán tăng lương (triệu/tháng)
+  const salary = Object.assign(document.createElement('select'), { className: 'promote small', title: `Tăng lương cho @${c.username}` });
+  salary.append(
+    new Option('💰 Tăng lương…', ''),
+    new Option('🎲 Tăng ngẫu nhiên +3–6 triệu', 'raise'),
+    ...[15, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120].map((v) => new Option(`${v} triệu`, v)),
+    new Option('😴 Giảm lương vì làm biếng → 4tr6', 4.6),
+  );
+  salary.onchange = () => {
+    if (!salary.value) return;
+    server.send({ type: 'setSalary', username: c.username, amount: salary.value === 'raise' ? 'raise' : Number(salary.value) });
+    salary.value = '';
+  };
+  // Sếp Toán xếp vị trí: Trưởng máy hoặc đứng máy nào
+  const place = Object.assign(document.createElement('select'), { className: 'promote small', title: `Xếp vị trí cho @${c.username}` });
+  const fillPlace = () => {
+    const leads = settings?.machineLeads ?? {};
+    const lead = document.createElement('optgroup');
+    lead.label = 'Làm Trưởng máy';
+    lead.append(...Object.entries(MACHINE_NAMES).map(([k, n]) => {
+      const holder = leads[k];
+      return new Option(holder === c.username ? `${n} ✓` : holder ? `${n} (thay @${holder})` : n, `lead:${k}`);
+    }));
+    const work = document.createElement('optgroup');
+    work.label = 'Đứng máy';
+    work.append(...Object.entries(MACHINE_NAMES).map(([k, n]) => new Option(n.replace('👑', '⚙'), `machine:${k}`)));
+    place.replaceChildren(new Option('🏭 Vị trí…', ''), lead, work);
+    if (Object.values(leads).includes(c.username)) place.append(new Option('✖ Thôi làm Trưởng máy', 'lead:'));
+  };
+  fillPlace();
+  place.onfocus = fillPlace; // cập nhật ai đang giữ máy nào trước khi chọn
+  place.onchange = () => {
+    const [kind, machine] = place.value.split(':');
+    if (kind === 'lead') server.send({ type: 'setLead', username: c.username, machine });
+    else if (kind === 'machine') server.send({ type: 'setMachine', username: c.username, machine });
+    place.value = '';
+  };
+  const actionsBox = Object.assign(document.createElement('div'), { className: 'feed-actions' });
+  actionsBox.append(promote, salary, place, block);
+  li.append(avatar, body, actionsBox);
   const atBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 40;
   feed.append(li);
   while (feed.children.length > FEED_SIZE) feed.firstElementChild.remove();
@@ -101,9 +233,307 @@ function addComment(c) {
   $('feedEmpty').hidden = true;
 }
 
+// ---------- Top viewers + sửa tên hiển thị ----------
+const viewerMap = new Map(); // username -> { username, nickname, origName, avatar }
+let onlineSet = new Set();    // TikTok báo đang trong phòng
+let salaries = {};            // username -> lương (triệu/tháng)
+let jobs = {};                // username -> 'bao-ve' | 'lao-cong' | 'thu-ky' | 'ke-toan'
+// 30 -> "30 triệu", 4.6 -> "4tr6"
+const moneyText = (v) => (v < 1 ? `${Math.round(v * 1000)}k` : Number.isInteger(v) ? `${v} triệu` : `${Math.floor(v)}tr${Math.round((v % 1) * 10)}`);
+const JOB_LABEL = { 'bao-ve': '🛡 Bảo vệ', 'lao-cong': '🧹 Lao công', 'thu-ky': '📝 Thư ký', 'ke-toan': '🧮 Kế toán' };
+let viewerFilter = 'live';    // 'live' = đang trong phiên, 'all' = tất cả
+const ACTIVE_MS = 5 * 60 * 1000;
+// 🟢 TikTok báo đang xem · 🟡 hoạt động ≤ 5 phút · ⚪ có thể đã rời
+const presence = (v) => (onlineSet.has(v.username) ? 'on' : Date.now() - (v.lastAt ?? v.at ?? 0) <= ACTIVE_MS ? 'recent' : 'gone');
+const viewerRanks = new Map(); // username -> { points, title }
+function renderViewers() {
+  const all = [...viewerMap.values()];
+  const live = all.filter((v) => presence(v) !== 'gone');
+  $('filterLive').textContent = `Đang trong phiên (${live.length})`;
+  $('filterAll').textContent = `Tất cả (${all.length})`;
+  $('filterLive').classList.toggle('on', viewerFilter === 'live');
+  $('filterAll').classList.toggle('on', viewerFilter === 'all');
+  const list = (viewerFilter === 'live' ? live : all).sort((a, b) =>
+    (viewerRanks.get(b.username)?.points ?? 0) - (viewerRanks.get(a.username)?.points ?? 0) || (b.at ?? 0) - (a.at ?? 0));
+  $('viewerCount').textContent = `${list.length} người`;
+  $('viewersEmpty').hidden = list.length > 0;
+  const focused = document.activeElement?.dataset?.user;
+  $('viewers').replaceChildren(...list.slice(0, 100).map((v, i) => {
+    const li = document.createElement('li');
+    const av = v.avatar
+      ? Object.assign(document.createElement('img'), { src: v.avatar, alt: '', referrerPolicy: 'no-referrer', loading: 'lazy' })
+      : Object.assign(document.createElement('div'), { textContent: initials(v.origName || v.username) });
+    av.classList.add('avatar');
+    const info = Object.assign(document.createElement('div'), { className: 'info' });
+    const orig = Object.assign(document.createElement('div'), { className: 'orig', textContent: `@${v.username} · TikTok: ${v.origName || v.nickname}` });
+    const edit = Object.assign(document.createElement('form'), { className: 'edit' });
+    const input = Object.assign(document.createElement('input'), { value: v.nickname !== v.origName ? v.nickname : '', placeholder: v.origName || v.username });
+    input.dataset.user = v.username;
+    const save = Object.assign(document.createElement('button'), { type: 'submit', className: 'small', textContent: 'Lưu' });
+    const greet = Object.assign(document.createElement('button'), { type: 'button', className: 'small primary', textContent: '🎉 Chào mừng', title: 'Bắn pháo hoa + câu chào trên màn hình LIVE' });
+    greet.onclick = () => {
+      server.send({ type: 'greet', username: v.username });
+      greet.textContent = '🎆 Đã chào';
+      setTimeout(() => (greet.textContent = '🎉 Chào mừng'), 2000);
+    };
+    if (Object.values(settings?.machineLeads ?? {}).includes(v.username)) li.classList.add('is-lead');
+    edit.append(input, save, greet);
+    edit.onsubmit = (e) => {
+      e.preventDefault();
+      server.send({ type: 'setAlias', username: v.username, name: input.value });
+      save.textContent = 'Đã lưu';
+      setTimeout(() => (save.textContent = 'Lưu'), 1200);
+    };
+    const r = viewerRanks.get(v.username);
+    const p = presence(v);
+    const meta = Object.assign(document.createElement('div'), {
+      className: 'meta',
+      textContent: `${{ on: '🟢 Đang xem', recent: '🟡 Hoạt động gần đây', gone: '⚪ Có thể đã rời' }[p]} · ${r ? `${r.title} · ${r.points} điểm` : 'Nhân viên chính thức'}${salaries[v.username] ? ` · 💰 ${moneyText(salaries[v.username])}` : ''}${jobs[v.username] ? ` · ${JOB_LABEL[jobs[v.username]]}` : ''} · `,
+    });
+    li.classList.toggle('gone', p === 'gone');
+    const ago = Object.assign(document.createElement('span'), { className: 'ago', textContent: timeAgo(v.lastAt ?? v.at) });
+    ago.dataset.at = v.lastAt ?? v.at ?? '';
+    meta.append(ago);
+    info.append(orig, edit, meta);
+    li.append(Object.assign(document.createElement('span'), { className: 'rank', textContent: i + 1 }), av, info);
+    if (focused === v.username) setTimeout(() => input.focus(), 0);
+    return li;
+  }));
+}
+const MACHINE_NAMES = {
+  song: '👑 Máy tạo sóng', offset: '👑 Máy in offset', canmang: '👑 Máy cán màng', flexo: '👑 Máy in flexo',
+  boi: '👑 Máy bồi', be: '👑 Máy bế tự động', dan: '👑 Máy dán tự động', thanhpham: '👑 Khu thành phẩm',
+};
+// "vừa xong", "25 giây trước", "3 phút trước", "1 giờ trước"
+function timeAgo(at) {
+  if (!at) return '';
+  const s = Math.max(0, Math.round((Date.now() - Number(at)) / 1000));
+  if (s < 5) return '🕒 vừa xong';
+  if (s < 60) return `🕒 ${s} giây trước`;
+  if (s < 3600) return `🕒 ${Math.floor(s / 60)} phút trước`;
+  return `🕒 ${Math.floor(s / 3600)} giờ trước`;
+}
+// Cập nhật chữ thời gian mỗi 5 giây (không vẽ lại cả danh sách để không làm mất chữ đang gõ)
+setInterval(() => {
+  for (const el of document.querySelectorAll('#viewers .ago, #feed .ago')) el.textContent = timeAgo(el.dataset.at);
+  for (const el of document.querySelectorAll('.audit-row .visit')) {
+    if (el.dataset.at) el.textContent = `vào lần cuối ${timeAgo(el.dataset.at).replace('🕒 ', '')}`;
+  }
+}, 5000);
+// Ghi nhận hoạt động gần nhất của một người xem
+function touchViewer(username, extra = {}) {
+  const v = viewerMap.get(username);
+  if (v) Object.assign(v, extra, { lastAt: Date.now() });
+  return v;
+}
+
+$('filterLive').onclick = () => { viewerFilter = 'live'; renderViewers(); };
+$('filterAll').onclick = () => { viewerFilter = 'all'; renderViewers(); };
+let viewersTimer;
+const renderViewersSoon = () => {
+  // không vẽ lại khi đang gõ tên
+  if (document.activeElement?.dataset?.user) return;
+  clearTimeout(viewersTimer);
+  viewersTimer = setTimeout(renderViewers, 300);
+};
+// Trạng thái (🟢🟡⚪) thay đổi theo thời gian: vẽ lại mỗi 30 giây
+setInterval(renderViewersSoon, 30000);
+
+// ---------- Nhạc nền ----------
+let music = null;
+const musicCmd = (cmd, extra = {}) => server.send({ type: 'music', cmd, ...extra });
+$('mPrev').onclick = () => musicCmd('prev');
+$('mNext').onclick = () => musicCmd('next');
+$('mToggle').onclick = () => musicCmd('toggle');
+$('mShuffle').onchange = (e) => musicCmd('shuffle', { on: e.target.checked });
+$('mVol').oninput = (e) => {
+  $('mVolOut').textContent = `${Math.round(e.target.value * 100)}%`;
+  musicCmd('volume', { volume: Number(e.target.value) });
+};
+$('musicFile').onchange = async (e) => {
+  const files = [...e.target.files];
+  for (const [i, f] of files.entries()) {
+    $('musicNow').textContent = `Đang tải ${i + 1}/${files.length}: ${f.name}…`;
+    try {
+      const res = await fetch(`/api/music?name=${encodeURIComponent(f.name)}`, { method: 'POST', headers: { 'Content-Type': 'audio/mpeg' }, body: f });
+      if (!res.ok) throw new Error((await res.json()).error);
+    } catch (err) {
+      alert(`Không tải được ${f.name}: ${err.message}`);
+    }
+  }
+  e.target.value = '';
+  if (music) renderMusic(music);
+};
+
+function renderMusic(m) {
+  music = m;
+  const track = m.tracks[m.index];
+  $('musicNow').textContent = track ? `${m.playing ? '▶ Đang phát' : '⏸ Tạm dừng'}: ${track.name}` : 'Chưa có bài nào. Tải file MP3 bạn có quyền sử dụng.';
+  $('mToggle').textContent = m.playing ? '⏸ Tạm dừng' : '▶ Phát';
+  $('mShuffle').checked = m.shuffle;
+  if (document.activeElement !== $('mVol')) $('mVol').value = m.volume;
+  $('mVolOut').textContent = `${Math.round(m.volume * 100)}%`;
+  $('musicList').replaceChildren(...m.tracks.map((t, i) => {
+    const li = document.createElement('li');
+    if (i === m.index) li.className = 'now';
+    const play = Object.assign(document.createElement('button'), { type: 'button', className: 'small', textContent: '▶', title: `Phát ${t.name}` });
+    play.onclick = () => musicCmd('select', { index: i });
+    const del = Object.assign(document.createElement('button'), { type: 'button', className: 'small', textContent: '✕', title: `Xoá ${t.name}` });
+    del.onclick = async () => {
+      if (confirm(`Xoá bài "${t.name}"?`)) await fetch(`/api/music/${encodeURIComponent(t.file)}`, { method: 'DELETE' });
+    };
+    li.append(Object.assign(document.createElement('span'), { textContent: `${i + 1}. ${t.name}` }), play, del);
+    return li;
+  }));
+}
+
+// ---------- Đoàn khách hàng audit ----------
+let logos = {};
+// Giống logoSlug ở máy chủ: "Kinh Đô" -> "kinh-do"
+const logoSlug = (team) => String(team).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/đ/gi, 'd').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+
+// Thêm / xoá công ty ngay trên dashboard
+const saveTeams = (teams) => server.send({ type: 'settings', patch: { auditTeams: teams } });
+$('addTeamForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const name = $('newTeam').value.trim().toUpperCase();
+  if (!name) return;
+  if (settings.auditTeams.some((t) => t.toUpperCase() === name)) return alert(`${name} đã có trong danh sách`);
+  saveTeams([...settings.auditTeams, name]);
+  $('newTeam').value = '';
+});
+
+async function uploadLogo(team, f, labelNode) {
+  if (!f) return;
+  if (!/^image\/(png|jpeg|webp|svg\+xml)$/.test(f.type)) return alert('Chỉ nhận ảnh PNG, JPG, WEBP hoặc SVG');
+  if (labelNode) labelNode.textContent = 'Đang tải…';
+  try {
+    const res = await fetch(`/api/logo/${encodeURIComponent(team)}`, { method: 'POST', headers: { 'Content-Type': f.type }, body: f });
+    if (!res.ok) throw new Error((await res.json()).error);
+  } catch (err) {
+    alert(`Không tải được logo ${team}: ${err.message}`);
+    if (labelNode) labelNode.textContent = 'Tải logo';
+  }
+}
+
+// Link ảnh (Copy image address): nhờ máy chủ tải về
+async function logoFromUrl(team, url) {
+  try {
+    const res = await fetch(`/api/logo-url/${encodeURIComponent(team)}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }),
+    });
+    if (!res.ok) throw new Error((await res.json()).error);
+  } catch (err) {
+    alert(`Không lấy được logo ${team} từ link: ${err.message}`);
+  }
+}
+const isUrl = (t) => /^https?:\/\/\S+$/i.test(String(t).trim());
+
+// Nút 📋 Dán: đọc clipboard (ảnh hoặc link ảnh). Lần đầu Chrome hỏi quyền đọc clipboard.
+async function pasteFromClipboard(team, btn) {
+  const label = btn.textContent;
+  btn.textContent = 'Đang dán…';
+  try {
+    const items = await navigator.clipboard.read();
+    for (const item of items) {
+      const type = item.types.find((t) => /^image\/(png|jpeg|webp|svg\+xml)$/.test(t));
+      if (type) return await uploadLogo(team, new File([await item.getType(type)], 'logo', { type }));
+    }
+    for (const item of items) {
+      for (const type of ['text/plain', 'text/uri-list', 'text/html']) {
+        if (!item.types.includes(type)) continue;
+        const text = await (await item.getType(type)).text();
+        const url = type === 'text/html' ? text.match(/<img[^>]+src="([^"]+)"/i)?.[1] : text.trim().split('\n')[0];
+        if (url && isUrl(url)) return await logoFromUrl(team, url.trim());
+      }
+    }
+    alert('Clipboard chưa có ảnh. Trên trang web: chuột phải vào logo → "Copy Image" (Sao chép hình ảnh) rồi bấm 📋 Dán lại.');
+  } catch (err) {
+    alert(`Không đọc được clipboard (${err.message}). Hãy bấm "Allow" khi Chrome hỏi quyền, hoặc rê chuột lên hàng rồi nhấn Ctrl+V / ⌘V.`);
+  } finally {
+    btn.textContent = label;
+  }
+}
+
+// Ctrl+V / ⌘V: dán vào hàng đang rê chuột (hoặc ô logo đang chọn)
+let hoverTeam = null;
+document.addEventListener('paste', (e) => {
+  const team = document.activeElement?.closest?.('.paste-target')?.dataset.team ?? hoverTeam;
+  if (!team || document.activeElement?.matches?.('input, textarea')) return;
+  const files = [...(e.clipboardData?.items ?? [])].filter((i) => i.kind === 'file' && i.type.startsWith('image/'));
+  const text = e.clipboardData?.getData('text/plain') ?? '';
+  const html = e.clipboardData?.getData('text/html') ?? '';
+  const htmlImg = html.match(/<img[^>]+src="([^"]+)"/i)?.[1];
+  e.preventDefault();
+  if (files.length) return uploadLogo(team, files[0].getAsFile());
+  if (isUrl(text)) return logoFromUrl(team, text.trim());
+  if (htmlImg && isUrl(htmlImg)) return logoFromUrl(team, htmlImg);
+  alert('Clipboard chưa có ảnh. Trên trang web: chuột phải vào logo → "Copy Image" rồi dán lại.');
+});
+
+let auditVisits = {};
+function renderAuditButtons(teams) {
+  // Đoàn chưa đến lên đầu, đoàn vừa vào gần nhất xuống cuối
+  const sorted = [...teams].sort((a, b) => (auditVisits[a] ?? 0) - (auditVisits[b] ?? 0));
+  $('auditButtons').replaceChildren(...sorted.map((team) => {
+    const row = Object.assign(document.createElement('div'), { className: 'audit-row' });
+    const url = logos[logoSlug(team)];
+    const logo = url
+      ? Object.assign(document.createElement('img'), { src: url, alt: `Logo ${team}`, className: 'audit-logo' })
+      : Object.assign(document.createElement('span'), { className: 'audit-logo empty', textContent: 'Chưa có logo' });
+    const name = Object.assign(document.createElement('b'), { textContent: team });
+    const visit = Object.assign(document.createElement('small'), { className: 'ago visit' });
+    visit.dataset.at = auditVisits[team] ?? '';
+    visit.textContent = auditVisits[team] ? `vào lần cuối ${timeAgo(auditVisits[team]).replace('🕒 ', '')}` : 'Chưa đến';
+    name.append(visit);
+
+    const upload = Object.assign(document.createElement('label'), { className: 'small upload', textContent: url ? 'Đổi logo' : 'Tải logo' });
+    const file = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/png,image/jpeg,image/webp,image/svg+xml', hidden: true });
+    file.onchange = () => uploadLogo(team, file.files[0], upload.firstChild);
+    upload.append(file);
+    // Bấm vào ô logo rồi Ctrl+V / ⌘V để dán ảnh; hoặc kéo thả file ảnh vào ô
+    logo.tabIndex = 0;
+    logo.title = 'Bấm vào đây rồi Ctrl+V để dán logo, hoặc kéo thả ảnh vào';
+    logo.dataset.team = team;
+    logo.classList.add('paste-target');
+    logo.addEventListener('dragover', (e) => { e.preventDefault(); logo.classList.add('drag'); });
+    logo.addEventListener('dragleave', () => logo.classList.remove('drag'));
+    logo.addEventListener('drop', (e) => {
+      e.preventDefault();
+      logo.classList.remove('drag');
+      uploadLogo(team, [...e.dataTransfer.files].find((f) => f.type.startsWith('image/')), upload.firstChild);
+    });
+
+    const invite = Object.assign(document.createElement('button'), { type: 'button', className: 'small primary', textContent: 'Mời vào' });
+    invite.onclick = () => server.send({ type: 'audit', team });
+    const remove = Object.assign(document.createElement('button'), { type: 'button', className: 'small', textContent: '✕', title: `Xoá ${team}` });
+    remove.onclick = () => {
+      if (confirm(`Xoá ${team} khỏi danh sách đoàn audit?`)) saveTeams(settings.auditTeams.filter((t) => t !== team));
+    };
+    const paste = Object.assign(document.createElement('button'), { type: 'button', className: 'small', textContent: '📋 Dán', title: `Dán logo ${team} từ clipboard` });
+    paste.onclick = () => pasteFromClipboard(team, paste);
+    row.addEventListener('mouseenter', () => (hoverTeam = team));
+    row.addEventListener('mouseleave', () => { if (hoverTeam === team) hoverTeam = null; });
+    row.append(logo, name, paste, upload, invite, remove);
+    return row;
+  }));
+}
+
+// Nút Chặn ↔ Bỏ chặn trên mỗi bình luận
+function paintBlock(btn) {
+  const blocked = settings?.blockedUsers?.includes(btn.dataset.user);
+  btn.textContent = blocked ? 'Bỏ chặn' : 'Chặn';
+  btn.title = `${blocked ? 'Bỏ chặn' : 'Chặn'} @${btn.dataset.user}`;
+  btn.classList.toggle('unblock', Boolean(blocked));
+}
+
 // ---------- Cài đặt ----------
 function setSettings(s) {
   settings = s;
+  document.querySelectorAll('.feed .block').forEach(paintBlock);
+  if (typeof renderViewersSoon === 'function') renderViewersSoon();
+  renderAuditButtons(s.auditTeams ?? []);
   for (const form of forms) {
     for (const el of form.elements) {
       if (!el.name || !(el.name in s) || el === document.activeElement) continue;
@@ -137,7 +567,7 @@ for (const form of forms) {
   form.addEventListener('input', () => {
     updateOutputs();
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => server.send({ type: 'settings', patch: { ...readForm(forms[0]), ...readForm(forms[1]) } }), 250);
+    saveTimer = setTimeout(() => server.send({ type: 'settings', patch: Object.assign({}, ...forms.map(readForm)) }), 250);
   });
 }
 
@@ -165,10 +595,12 @@ new ResizeObserver(fitFrame).observe(preview);
 // ---------- Giao diện overlay + URL cho OBS ----------
 const themeSel = $('themeSel');
 let overlayUrl;
+let tunnelBase = null; // https://….trycloudflare.com nếu đường hầm đang chạy
 function applyTheme() {
   const path = themeSel.value;
   overlayUrl = `${location.origin}${path}`;
   $('overlayUrl').textContent = overlayUrl;
+  renderTunnel();
   frame.src = `${path}${path.includes('?') ? '&' : '?'}preview`;
   try { localStorage.setItem('theme', path); } catch {}
 }
@@ -176,12 +608,78 @@ try { themeSel.value = localStorage.getItem('theme') || themeSel.value; } catch 
 if (!themeSel.value) themeSel.selectedIndex = 0;
 themeSel.onchange = applyTheme;
 applyTheme();
-$('copyBtn').onclick = async () => {
+async function copyText(btn, text, label) {
   try {
-    await navigator.clipboard.writeText(overlayUrl);
-    $('copyBtn').textContent = 'Đã sao chép';
+    await navigator.clipboard.writeText(text);
+    btn.textContent = 'Đã sao chép';
   } catch {
-    $('copyBtn').textContent = 'Hãy chép thủ công';
+    btn.textContent = 'Hãy chép thủ công';
   }
-  setTimeout(() => ($('copyBtn').textContent = 'Sao chép URL cho OBS'), 1500);
+  setTimeout(() => (btn.textContent = label), 1500);
+}
+$('copyBtn').onclick = () => copyText($('copyBtn'), overlayUrl, 'Sao chép URL cho OBS');
+
+// ---------- Link Cloudflare cho TikTok LIVE Studio (Add link chỉ nhận https) ----------
+function renderTunnel() {
+  const link = tunnelBase ? `${tunnelBase}${themeSel.value}` : '';
+  $('tunnelRow').hidden = !tunnelBase;
+  $('tunnelHint').hidden = Boolean(tunnelBase);
+  $('tunnelUrl').textContent = link;
+}
+async function loadTunnel() {
+  try {
+    tunnelBase = (await (await fetch('/api/tunnel')).json()).url;
+  } catch {
+    tunnelBase = null;
+  }
+  renderTunnel();
+}
+$('copyTunnelBtn').onclick = () => copyText($('copyTunnelBtn'), $('tunnelUrl').textContent, 'Sao chép link LIVE Studio');
+loadTunnel();
+setInterval(loadTunnel, 15000); // đường hầm chạy lại thì địa chỉ đổi: tự cập nhật
+
+// ---------- Quà nhận được: tổng xu + ước tính tiền ----------
+let gifts = [];
+let giftScope = 'today';
+const RATE_KEY = 'giftRateVnd';
+try { const r = Number(localStorage.getItem(RATE_KEY)); if (r > 0) $('giftRate').value = r; } catch {}
+const fmtNum = (n) => Math.round(n).toLocaleString('vi-VN');
+function renderGifts() {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const list = giftScope === 'today' ? gifts.filter((g) => g.at >= start.getTime()) : gifts;
+  const coins = list.reduce((s, g) => s + (g.coins || 0), 0);
+  const rate = Number($('giftRate').value) || 0;
+  $('giftCoins').textContent = fmtNum(coins);
+  $('giftVnd').textContent = `${fmtNum(coins * rate)} ₫`;
+  $('giftCount').textContent = fmtNum(list.length);
+  // Top người tặng
+  const by = new Map();
+  for (const g of list) by.set(g.username, { name: g.nickname || g.username, coins: (by.get(g.username)?.coins ?? 0) + (g.coins || 0) });
+  const medals = ['🥇', '🥈', '🥉'];
+  $('giftTop').replaceChildren(...[...by.values()].sort((a, b) => b.coins - a.coins).slice(0, 5)
+    .map((u, i) => Object.assign(document.createElement('span'), { textContent: `${medals[i] ?? '🎁'} ${u.name} · ${fmtNum(u.coins)} xu` })));
+  $('giftList').replaceChildren(...list.slice(-200).reverse().map((g) => {
+    const li = document.createElement('li');
+    const d = new Date(g.at);
+    li.append(
+      Object.assign(document.createElement('span'), { className: 't', textContent: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }),
+      Object.assign(document.createElement('span'), { className: 'n', textContent: `@${g.username} tặng ${g.gift} x${g.count}` }),
+      Object.assign(document.createElement('span'), { className: 'c', textContent: `${fmtNum(g.coins)} xu` }),
+    );
+    return li;
+  }));
+  $('giftEmpty').hidden = list.length > 0;
+}
+$('giftRate').oninput = () => {
+  try { localStorage.setItem(RATE_KEY, $('giftRate').value); } catch {}
+  renderGifts();
 };
+for (const [id, scope] of [['giftToday', 'today'], ['giftAll', 'all']]) {
+  $(id).onclick = () => {
+    giftScope = scope;
+    $('giftToday').classList.toggle('on', scope === 'today');
+    $('giftAll').classList.toggle('on', scope === 'all');
+    renderGifts();
+  };
+}

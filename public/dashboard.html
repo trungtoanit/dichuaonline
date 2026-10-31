@@ -19,7 +19,7 @@
   <form id="connectForm" class="panel connect">
     <label class="grow">
       <span>Username TikTok đang LIVE</span>
-      <input id="username" value="huyntrang140806" placeholder="@tenkenh hoặc link tiktok.com/@tenkenh/live" autocomplete="off" spellcheck="false">
+      <input id="username" value="nguyen.trung.toan" placeholder="@tenkenh hoặc link tiktok.com/@tenkenh/live" autocomplete="off" spellcheck="false">
     </label>
     <div class="buttons">
       <button type="submit" class="primary">Kết nối</button>
@@ -37,6 +37,7 @@
   </section>
 
   <div class="cols">
+    <div class="side">
     <section class="panel feed-panel">
       <div class="panel-head">
         <h2>Bình luận trực tiếp</h2>
@@ -45,6 +46,26 @@
       <ul id="feed" class="feed"></ul>
       <p id="feedEmpty" class="empty">Chưa có bình luận. Kết nối một phiên LIVE hoặc bật "Bình luận giả lập" để thử.</p>
     </section>
+
+    <section class="panel gifts-panel">
+      <div class="panel-head">
+        <h2>🎁 Quà nhận được</h2>
+        <div class="buttons filter">
+          <button type="button" id="giftToday" class="small on">Hôm nay</button>
+          <button type="button" id="giftAll" class="small">Tất cả</button>
+        </div>
+      </div>
+      <div class="gift-sum">
+        <div><span>Tổng xu</span><b id="giftCoins">0</b></div>
+        <div><span>Ước tính nhận</span><b id="giftVnd">0 ₫</b></div>
+        <div><span>Lượt tặng</span><b id="giftCount">0</b></div>
+      </div>
+      <p class="hint">Ước tính theo <input id="giftRate" type="number" min="1" step="1" value="130"> ₫ cho 1 xu (TikTok trả khoảng 50% giá xu, chưa trừ thuế và phí rút tiền). Con số thật xem trong mục Kim cương / Thu nhập của TikTok.</p>
+      <div class="gift-top" id="giftTop"></div>
+      <ul id="giftList" class="gift-list"></ul>
+      <p id="giftEmpty" class="empty">Chưa có quà nào.</p>
+    </section>
+    </div>
 
     <div class="side">
       <section class="panel">
@@ -55,6 +76,7 @@
               <option value="/overlay">Giao diện thường</option>
               <option value="/overlay/chua">Chùa (khung, giữa trong suốt)</option>
               <option value="/overlay/chua?nen">Chùa (cảnh nền đầy đủ)</option>
+              <option value="/overlay/nha-may">Nhà máy carton</option>
             </select>
             <select id="frameSel" class="small" aria-label="Khung hình">
               <option value="1080x1920">Dọc 9:16 (TikTok)</option>
@@ -62,6 +84,7 @@
             </select>
             <button type="button" id="clearBtn" class="small">Xóa màn hình</button>
             <button type="button" id="clearMembersBtn" class="small">Xóa DS Phật tử</button>
+            <button type="button" id="reloadBtn" class="small" title="Tải lại overlay đang chạy trong OBS / LIVE Studio">↻ Tải lại overlay</button>
           </div>
         </div>
         <div class="preview"><iframe title="Xem trước overlay"></iframe></div>
@@ -69,8 +92,43 @@
           <code id="overlayUrl"></code>
           <button type="button" id="copyBtn" class="small">Sao chép URL cho OBS</button>
         </div>
+        <div class="url-row" id="tunnelRow" hidden>
+          <code id="tunnelUrl"></code>
+          <button type="button" id="copyTunnelBtn" class="small primary">Sao chép link LIVE Studio</button>
+        </div>
+        <p class="hint" id="tunnelHint">Chưa có đường hầm Cloudflare. Chạy lệnh <code>~/.local/bin/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:3000</code> để có link https cho LIVE Studio.</p>
       </section>
 
+      <section class="panel">
+        <div class="panel-head">
+          <h2>🎵 Nhạc nền</h2>
+          <label class="upload">Tải MP3 lên<input type="file" id="musicFile" accept="audio/mpeg,.mp3" multiple hidden></label>
+        </div>
+        <p id="musicNow" class="music-now">Chưa có bài nào. Tải file MP3 bạn có quyền sử dụng.</p>
+        <div class="buttons">
+          <button type="button" id="mPrev" title="Bài trước">⏮</button>
+          <button type="button" id="mToggle" class="primary">▶ Phát</button>
+          <button type="button" id="mNext" title="Bài tiếp">⏭</button>
+          <label class="check"><input type="checkbox" id="mShuffle"> Trộn bài</label>
+        </div>
+        <label>Âm lượng <output id="mVolOut"></output>
+          <input type="range" id="mVol" min="0" max="1" step="0.05"></label>
+        <ol id="musicList" class="music-list"></ol>
+      </section>
+
+      <section class="panel">
+        <h2>Đoàn khách hàng audit</h2>
+        <div id="auditButtons" class="audit-list"></div>
+        <form id="addTeamForm" class="add-team">
+          <input id="newTeam" placeholder="+ Thêm công ty (vd. VINAMILK)" maxlength="24" autocomplete="off">
+          <button type="submit" class="primary">Thêm</button>
+        </form>
+        <form id="auditForm" class="grid">
+          <label class="wide">Danh sách đoàn <small>(mỗi dòng một đoàn)</small>
+            <textarea name="auditTeams" rows="3"></textarea></label>
+          <label>Tự mời đoàn kế tiếp mỗi (phút, 0 = tắt) <input type="number" name="auditAutoMin" min="0" max="120"></label>
+        </form>
+      </section>
       <section class="panel">
         <h2>Hiển thị</h2>
         <form id="displayForm" class="grid">
@@ -108,9 +166,23 @@
           <label>Mỗi người tối đa 1 bình luận / (giây) <input type="number" name="userCooldownSec" min="0" max="120"></label>
           <label>Độ dài tối đa (ký tự) <input type="number" name="maxLength" min="10" max="500"></label>
           <label class="check"><input type="checkbox" name="blockLinks"> Chặn bình luận chứa link</label>
+          <label class="check wide"><input type="checkbox" name="autoPromote"> Tự thăng chức khi nhân viên xin ("cho em làm tổ trưởng"), giảm 1 bậc khi nói tiêu cực</label>
         </form>
       </section>
     </div>
+    <section class="panel viewers-panel">
+      <div class="panel-head">
+        <h2>👥 Top viewers</h2>
+        <span id="viewerCount" class="live-dot on">0 người</span>
+      </div>
+      <div class="buttons filter">
+        <button type="button" id="filterLive" class="small on">Đang trong phiên</button>
+        <button type="button" id="filterAll" class="small">Tất cả</button>
+      </div>
+      <p class="hint">🟢 TikTok báo đang xem · 🟡 vào/bình luận/thả tim trong 5 phút · ⚪ có thể đã rời (TikTok không báo khi rời phòng). Sửa tên rồi Enter hoặc Lưu; để trống = tên TikTok.</p>
+      <ol id="viewers" class="viewers"></ol>
+      <p id="viewersEmpty" class="empty">Chưa có ai vào phiên LIVE.</p>
+    </section>
   </div>
   <footer>Phần mềm chỉ đọc bình luận và hiển thị dưới dạng lớp đồ họa, không đăng bình luận thay người dùng.</footer>
 </main>

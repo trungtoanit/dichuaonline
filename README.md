@@ -24,7 +24,7 @@ TikTok LIVE ──► Node.js (tiktok-live-connector) ──► Bộ lọc + Hà
 | Tự kết nối lại khi mất mạng (tối đa 5 lần: 2s, 4s, 8s, 16s, 30s) | Có |
 | Tùy chỉnh màu, cỡ chữ, độ rộng, vị trí, độ đậm nền, avatar (áp dụng ngay) | Có |
 | Bình luận giả lập để thử khi chưa LIVE | Có |
-| Tự kết nối khi mở / F5 dashboard (username mặc định `huyntrang140806`, nhớ kênh dùng gần nhất) | Có |
+| Tự kết nối khi mở / F5 dashboard (username mặc định `nguyen.trung.toan`) | Có |
 | Overlay **Chùa**: cổng tam quan, đèn lồng, hồ sen; danh sách Phật tử (người vào phiên LIVE), lời chào khi có Phật tử mới | Có |
 | Lưu lịch sử bình luận, AI trả lời | Giai đoạn sau |
 
@@ -51,6 +51,8 @@ Màn hình sẽ in ra:
 Dashboard: http://127.0.0.1:3000/dashboard
 Overlay  : http://127.0.0.1:3000/overlay
 ```
+
+Trên macOS có thể **bấm đúp `start.command`** trong Finder thay cho hai lệnh trên (tự cài thư viện lần đầu, tự tìm Node trong `~/.local/node` nếu máy chưa cài Node).
 
 Giữ cửa sổ này mở suốt buổi LIVE (đóng là overlay ngừng nhận bình luận). Nhấn `Ctrl + C` để tắt.
 
@@ -83,13 +85,46 @@ Nền overlay trong suốt sẵn, không cần thêm CSS tùy chỉnh trong OBS.
 
 Thiết kế cho khung dọc 1080×1920. Mỗi người vào xem LIVE là một **Phật tử** (avatar làm đầu, mặc áo tràng) đi qua đi lại trong sân chùa, thỉnh thoảng dừng chắp tay vái. Khi ai bình luận, lời bình luận hiện thành **bong bóng trên đầu** người đó (người đó đứng lại cho dễ đọc). Sân hiện tối đa 16 người: người mới vào sẽ thay người im lặng lâu nhất, người đang bình luận luôn được giữ chỗ. TikTok chỉ báo khi có người *vào* chứ không báo khi rời, nên đây là những người vào gần nhất. Nút **Xóa DS Phật tử** trên dashboard để làm mới sân.
 
+### Overlay Nhà máy carton
+
+`http://127.0.0.1:3000/overlay/nha-may`: xưởng sản xuất thùng carton với 7 máy đang chạy (máy tạo sóng, máy in offset, máy cán màng, máy in flexo, máy bồi, máy bế tự động, máy dán tự động) và khu thành phẩm. Mỗi người vào xem LIVE là một **công nhân**: mặt là avatar TikTok thật, đội mũ bảo hộ, mặc áo phản quang, đứng thao tác máy và thỉnh thoảng đi lại quanh máy. Ai bình luận sẽ vẫy tay, lời bình luận hiện thành bong bóng trên đầu. Tối đa 19 công nhân cùng lúc. Đây là cảnh đầy đủ (không trong suốt): đặt nguồn này **dưới** camera, hoặc đặt camera thu nhỏ ở một góc.
+
+### Nhà máy: xuống ca, máy quay, Ông chủ, thăng chức
+
+- **Xuống ca**: công nhân im lặng 10 phút (hoặc nhường chỗ khi nhà máy đủ người) sẽ đi tới **máy chấm công** quẹt thẻ, vẫy tay chào rồi ra **LỐI RA**.
+- **Máy quay ảo** (tắt mặc định, khung cảnh tĩnh): thêm `?camera=on` vào URL để tự zoom lần lượt từng máy và lia tới người vừa bình luận.
+- **Ông chủ**: khi chủ kênh (username mặc định) vào xem LIVE của chính mình, nhân vật **Ông chủ Toán** xuất hiện, đi tới từng công nhân để khen ngợi, khích lệ. Đặt ảnh ông chủ tại `public/ong-chu-toan.jpg` để dùng làm khuôn mặt (không có thì dùng avatar TikTok).
+- **Thăng chức**: điểm chăm chỉ = bình luận (+10), mỗi lượt tim (+1, tối đa 30 mỗi lần), quà (+50/món), chia sẻ (+20), theo dõi (+30). Chức vụ: Học việc (0) → Công nhân (30) → Thợ đứng máy (100) → Tổ trưởng (250) → Trưởng ca (500) → Quản đốc (1000) → Phó giám đốc (2000) → Giám đốc nhà máy (4000). Mũ, đồng phục đổi theo chức vụ; thăng chức có pháo giấy và chúc mừng; **Bảng vinh danh** top 5 ở góc màn hình. Điểm lưu tại `data/ranks.json` nên giữ qua các buổi LIVE.
+
+### Đoàn khách hàng audit
+
+Dashboard có panel **Đoàn khách hàng audit** (mặc định TIKI, MASAN, KINHDO, TUONGAN, BOXME; sửa được). Mỗi đoàn có nút **Tải logo** (PNG/JPG/WEBP/SVG, lưu vào `public/logos/`) và **Mời vào**. Đoàn 4 người (trưởng đoàn + 3 thành viên, thẻ đeo có logo công ty) đi kiểm tra 8 hạng mục, bảng checklist đánh ✅ dần, máy quay đi theo, cuối cùng công bố kết quả. Các đoàn cũng tự đến luân phiên mỗi 6 phút (đặt 0 để tắt). Hãy dùng file logo chính thức mà khách hàng cung cấp.
+
+### Nhạc nền MP3
+
+Panel **🎵 Nhạc nền** trên dashboard: **Tải MP3 lên** (chọn nhiều file, lưu ở `public/music/`), ⏮ ⏯ ⏭, phát bài bất kỳ, âm lượng, trộn bài, xoá bài. Nhạc phát ngay trong overlay nhà máy (bật **Turn on sound** cho nguồn Link trong LIVE Studio / *Control audio via OBS* trong OBS), hết bài tự chuyển bài. Muốn nhạc là một nguồn riêng: thêm nguồn Link `…/nhac`. Khung xem trước trên dashboard luôn tắt tiếng.
+
+Chỉ dùng nhạc bạn có quyền phát (nhạc tự sáng tác, nhạc mua bản quyền, thư viện nhạc miễn phí bản quyền). Nhạc có bản quyền trên TikTok LIVE có thể bị tắt tiếng hoặc cảnh cáo.
+
+### Nhà máy không bao giờ trống
+
+Khi chưa có (hoặc ít) người xem, overlay nhà máy giả lập **5–10 công nhân**: lấy ngẫu nhiên từ `data/nhan-su.json` (chỉ họ tên + bộ phận, dạng `[{"name": "...", "role": "Tổ in"}]`) nếu có, không thì ghép tên tiếng Việt ngẫu nhiên (hư cấu). Người ảo **ra vào liên tục**: vào từ cửa, quẹt thẻ ở máy chấm công ("Vào ca! 💪"), đi tới máy làm việc 45 giây – 2,5 phút rồi quẹt thẻ xuống ca, ra cửa; người mới đến rải rác vài giây một lần. Ô "Công nhân đang ca" tính cả người xem thật lẫn người ảo. Người xem thật luôn được ưu tiên chỗ đứng.
+
 ### 5. Phát LIVE và kết nối bình luận
 
 1. Bắt đầu LIVE trên TikTok (từ OBS bằng *Server URL + Stream Key* nếu tài khoản có quyền, hoặc qua TikTok LIVE Studio).
-2. Mở dashboard: phần mềm **tự kết nối** username đã điền (mặc định `huyntrang140806`). Muốn đổi kênh thì nhập username khác → **Kết nối**, lần sau sẽ nhớ kênh này.
+2. Mở dashboard: phần mềm **tự kết nối** username đã điền (mặc định `nguyen.trung.toan`). Muốn xem kênh khác thì nhập username → **Kết nối** (mặc định vẫn giữ nguyên).
 3. Huy hiệu góc phải chuyển sang **LIVE @tenkenh** là đang nhận bình luận.
 
 > **Nếu dùng TikTok LIVE Studio**: cần có nguồn kiểu Browser / Link / trang web để dán URL overlay. Nếu không có, dựng hình trong OBS (camera + overlay) → bấm **Start Virtual Camera** → trong LIVE Studio thêm nguồn camera và chọn **OBS Virtual Camera**. Chỉ mở dashboard **không** tự đưa bình luận vào video.
+>
+> **Dán overlay vào TikTok LIVE Studio (Add link)**: LIVE Studio không nhận địa chỉ `127.0.0.1`/`localhost`. Chạy đường hầm Cloudflare để có địa chỉ `https` công khai:
+>
+> ```bash
+> ~/.local/bin/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:3000
+> ```
+>
+> Lấy dòng `https://….trycloudflare.com` in ra, dán `https://….trycloudflare.com/overlay/nha-may` vào **Add link**. Người truy cập qua đường hầm **chỉ xem** được overlay (dashboard, điều khiển và tải file bị chặn). Mỗi lần chạy lại lệnh, địa chỉ sẽ đổi.
 >
 > **Nếu LIVE trực tiếp từ điện thoại**: không ghép được overlay vào video. Overlay chỉ dùng được khi phát từ máy tính.
 

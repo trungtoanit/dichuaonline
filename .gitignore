@@ -3,3 +3,6 @@ data/
 .env
 .DS_Store
 .claude/launch.json
+public/logos/
+public/music/
+public/staff/

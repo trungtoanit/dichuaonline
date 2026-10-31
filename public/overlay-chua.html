@@ -9,15 +9,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@500;700&family=Be+Vietnam+Pro:wght@500;600&display=swap" rel="stylesheet">
 <style>
   /* Thiết kế cho khung dọc 1080×1920, tự co giãn theo kích thước nguồn trong OBS.
-     Mặc định phần giữa trong suốt để thấy camera; thêm ?nen để có cảnh chùa đầy đủ làm nền. */
+     Mặc định phần giữa trong suốt để thấy camera; thêm ?nen để có cảnh chánh điện đầy đủ làm nền.
+     Phong cách trang nghiêm, tối giản: vàng đồng, nâu trầm, kem sáng, xanh ngọc trầm. */
   :root {
     --font: 30px;
-    --gold: #f2c14e;
-    --gold-dark: #b8860b;
-    --red: #9b1c1c;
-    --red-dark: #5c0f0f;
-    --paper: #fbf1d6;
-    --ink: #3b2412;
+    --gold: #c6a15b;
+    --gold-light: #e8c77e;
+    --brown: #38291f;
+    --brown-dark: #231b17;
+    --cream: #f8f2e7;
+    --jade: #436c60;
+    --ink: #38291f;
   }
   html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; }
   body { font-family: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif; }
@@ -30,78 +32,140 @@
     width: 1080px;
     height: 1920px;
     transform-origin: 0 0;
+    overflow: hidden;
   }
   #stage > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-  #scene { display: none; }
-  body.nen #scene { display: block; }
+  #scene, #motes { display: none; }
+  body.nen #scene, body.nen #motes { display: block; }
 
-  .lantern { transform-box: fill-box; transform-origin: 50% 0; animation: sway 4s ease-in-out infinite alternate; }
-  .lantern.b { animation-delay: -2s; }
-  @keyframes sway { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
-  .smoke { animation: rise 6s ease-out infinite; opacity: 0; }
-  .smoke.b { animation-delay: -2s; }
-  .smoke.c { animation-delay: -4s; }
+  /* Chuyển động nhẹ, không nhấp nháy */
+  .flame { transform-box: fill-box; transform-origin: 50% 100%; animation: flame 2.4s ease-in-out infinite alternate; }
+  .flame.b { animation-delay: -1.2s; }
+  @keyframes flame { from { transform: scale(1, 1) rotate(-2deg); } to { transform: scale(.92, 1.08) rotate(2deg); } }
+  .halo { transform-box: fill-box; transform-origin: center; animation: breathe 7s ease-in-out infinite alternate; }
+  @keyframes breathe { from { opacity: .75; transform: scale(.98); } to { opacity: 1; transform: scale(1.02); } }
+  .rays { transform-box: fill-box; transform-origin: center; animation: turn 120s linear infinite; }
+  @keyframes turn { to { transform: rotate(360deg); } }
+  .smoke { animation: rise 7s ease-out infinite; opacity: 0; }
+  .smoke.b { animation-delay: -2.3s; }
+  .smoke.c { animation-delay: -4.6s; }
   @keyframes rise {
     0% { opacity: 0; transform: translateY(0) scale(.6); }
-    20% { opacity: .55; }
-    100% { opacity: 0; transform: translateY(-260px) scale(1.6); }
+    25% { opacity: .45; }
+    100% { opacity: 0; transform: translateY(-240px) scale(1.7); }
   }
-  .glow { animation: glow 3s ease-in-out infinite alternate; }
-  @keyframes glow { from { opacity: .55; } to { opacity: 1; } }
+
+  /* Bụi sáng vàng bay lên chậm */
+  #motes { position: absolute; inset: 0; pointer-events: none; }
+  #motes i {
+    position: absolute; bottom: 560px; width: 8px; height: 8px; border-radius: 50%;
+    background: radial-gradient(circle, #fff3cf 0, #e8c77e 45%, rgba(232, 199, 126, 0) 70%);
+    opacity: 0; animation: mote linear infinite;
+  }
+  @keyframes mote {
+    0% { opacity: 0; transform: translate(0, 0); }
+    15% { opacity: .85; }
+    85% { opacity: .6; }
+    100% { opacity: 0; transform: translate(var(--dx), -900px); }
+  }
+
+  /* Đầu trang: logo hoa sen + tên */
+  #header {
+    position: absolute; left: 0; right: 0; top: 0; height: 176px;
+    display: flex; align-items: center; justify-content: center; gap: 22px;
+    background: linear-gradient(180deg, #231b17, #38291f);
+    border-bottom: 4px solid var(--gold);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  }
+  #header::after { /* viền chỉ vàng mảnh */
+    content: ""; position: absolute; left: 80px; right: 80px; bottom: 10px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold-light), transparent);
+  }
+  #header svg { width: 96px; height: 96px; }
+  #header .name { text-align: center; }
+  #header h1 {
+    margin: 0; font: 700 56px/1.1 "Noto Serif", serif; letter-spacing: 6px;
+    background: linear-gradient(180deg, #f6e2b0, #c6a15b 70%, #9c7a3c);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  #header p { margin: 6px 0 0; font: 500 26px/1.2 "Noto Serif", serif; letter-spacing: 8px; color: var(--cream); opacity: .85; }
 
   /* Câu đối trên cột */
   .couplet {
     position: absolute;
-    top: 620px;
+    top: 470px;
     width: 64px;
     writing-mode: vertical-rl;
     text-orientation: upright;
-    font: 700 34px/64px "Noto Serif", serif;
-    letter-spacing: 6px;
-    color: var(--gold);
+    font: 700 32px/64px "Noto Serif", serif;
+    letter-spacing: 8px;
+    color: var(--gold-light);
     text-align: center;
-    text-shadow: 0 2px 2px rgba(0, 0, 0, .5);
+    text-shadow: 0 2px 3px rgba(0, 0, 0, .6);
   }
   .couplet.l { left: 0; }
   .couplet.r { right: 0; }
-
-  /* Thông báo Phật tử mới vào */
-  #welcome {
-    position: absolute;
-    left: 50%;
-    top: 520px;
-    transform: translateX(-50%);
-    padding: 12px 34px;
-    border-radius: 999px;
-    background: linear-gradient(90deg, #8a5a00, #e0a82e 50%, #8a5a00);
-    color: #2a1600;
-    font: 600 26px/1.3 "Be Vietnam Pro", sans-serif;
-    white-space: nowrap;
-    max-width: 600px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
-    opacity: 0;
-    transition: opacity .4s, transform .4s;
-  }
-  #welcome.show { opacity: 1; transform: translateX(-50%) translateY(6px); }
 
   /* Số Phật tử đang dự */
   #count {
     position: absolute;
     left: 50%;
-    top: 600px;
+    top: 196px;
     transform: translateX(-50%);
-    padding: 6px 22px;
-    border-radius: 10px;
-    background: rgba(92, 15, 15, .88);
-    border: 3px solid var(--gold-dark);
-    color: var(--gold);
+    padding: 6px 26px;
+    border-radius: 999px;
+    background: rgba(35, 27, 23, .82);
+    border: 2px solid var(--gold);
+    color: var(--gold-light);
     font: 700 24px/1.3 "Noto Serif", serif;
     white-space: nowrap;
   }
 
-  /* Phật tử đứng trong sân chùa: avatar làm đầu, áo tràng, tên bên dưới */
+  /* Thông báo Phật tử mới vào */
+  #welcome {
+    position: absolute;
+    left: 50%;
+    top: 262px;
+    transform: translateX(-50%);
+    padding: 12px 34px;
+    border-radius: 999px;
+    background: rgba(248, 242, 231, .96);
+    border: 2px solid var(--gold);
+    color: var(--ink);
+    font: 600 26px/1.3 "Be Vietnam Pro", sans-serif;
+    white-space: nowrap;
+    max-width: 760px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
+    opacity: 0;
+    transition: opacity .6s, transform .6s;
+  }
+  #welcome.show { opacity: 1; transform: translateX(-50%) translateY(6px); }
+
+  /* Thành tâm tri ân: hoa sen vàng nở, tên người tặng quà, lời chúc */
+  #thanks {
+    position: absolute; left: 50%; top: 1010px; width: 720px; /* dưới tượng Phật, không che dung nhan */
+    transform: translateX(-50%) translateY(16px); opacity: 0;
+    padding: 26px 36px 30px; border-radius: 28px; text-align: center;
+    background: radial-gradient(120% 90% at 50% 0%, #4a3728 0%, #2b211b 55%, #231b17 100%);
+    border: 2px solid var(--gold);
+    box-shadow: 0 0 0 8px rgba(198, 161, 91, .15), 0 18px 48px rgba(0, 0, 0, .5);
+    transition: opacity .8s ease, transform .8s ease;
+    z-index: 6000;
+  }
+  #thanks.show { opacity: 1; transform: translateX(-50%); }
+  #thanks svg { width: 170px; height: 120px; display: block; margin: 0 auto 6px; overflow: visible; }
+  #thanks .petal { transform-box: fill-box; transform-origin: 50% 100%; transform: scale(.2); opacity: 0; transition: transform 1.2s cubic-bezier(.2, .8, .2, 1), opacity 1s; }
+  #thanks.show .petal { transform: none; opacity: 1; }
+  #thanks.show .petal.p2 { transition-delay: .15s; }
+  #thanks.show .petal.p3 { transition-delay: .3s; }
+  #thanks .t1 { font: 700 40px/1.2 "Noto Serif", serif; color: var(--gold-light); }
+  #thanks .t2 { margin-top: 10px; font: 700 46px/1.2 "Noto Serif", serif; color: #fff; overflow-wrap: anywhere; }
+  #thanks .t3 { margin-top: 12px; font: 500 28px/1.4 "Be Vietnam Pro", sans-serif; color: #e7d8b9; }
+  #thanks .t4 { margin-top: 4px; font: 500 24px/1.4 "Be Vietnam Pro", sans-serif; color: #e7d8b9; opacity: .85; }
+
+  /* Phật tử trong chánh điện: avatar làm đầu, áo tràng có tay, chân đi giày; đi lại, lên quỳ lạy trước bàn thờ */
   .pt {
     position: absolute;
     left: 0;
@@ -111,55 +175,92 @@
     flex-direction: column;
     align-items: center;
     transform-origin: 50% 100%;
-    animation: arrive .6s ease-out both;
+    animation: arrive .8s ease-out both;
   }
-  .pt.leaving { animation: depart .5s ease-in both; }
+  .pt.leaving { animation: depart .6s ease-in both; }
   @keyframes arrive { from { opacity: 0; translate: 0 30px; } }
   @keyframes depart { to { opacity: 0; translate: 0 20px; } }
+  .pt .fig { display: flex; flex-direction: column; align-items: center; }
+  /* Vật phẩm donate trên đầu (bay lên bàn thờ khi dâng lễ) */
+  .pt .item { position: relative; display: flex; justify-content: center; align-items: flex-end; margin-bottom: 6px; }
+  .pt .item:empty { display: none; }
+  .pt .item svg { width: 70px; height: 70px; filter: drop-shadow(0 0 10px rgba(255, 220, 140, .85)); }
+  .pt .item .emo { font-size: 58px; line-height: 1; filter: drop-shadow(0 0 10px rgba(255, 220, 140, .85)); }
+  .pt .item .x {
+    position: absolute; right: -14px; bottom: -2px; padding: 0 7px; border-radius: 999px;
+    background: var(--gold); color: var(--brown-dark); font: 700 18px/1.4 "Be Vietnam Pro", sans-serif;
+  }
+  .pt .item { animation: float 2.4s ease-in-out infinite alternate; }
+  @keyframes float { to { transform: translateY(-6px); } }
+  .pt .item.offer { animation: offer 1.6s ease-in forwards; }
+  @keyframes offer { 0% { transform: none; opacity: 1; } 100% { transform: translateY(-220px) scale(.5); opacity: 0; } }
   .pt .head {
     width: 72px; height: 72px; border-radius: 50%;
     object-fit: cover;
-    border: 4px solid #f3e2b3;
-    background: #c08a5a; color: #fff;
+    border: 4px solid var(--cream);
+    background: #8c6a4a; color: #fff;
     display: grid; place-items: center;
     font: 600 30px/1 "Be Vietnam Pro", sans-serif;
-    position: relative; z-index: 1;
+    position: relative; z-index: 3;
     box-shadow: 0 4px 10px rgba(0, 0, 0, .35);
   }
+  .pt .torso { position: relative; width: 112px; height: 96px; margin-top: -10px; z-index: 2; transform-origin: 50% 100%; transition: height .5s; }
   .pt .robe {
-    width: 96px; height: 92px; margin-top: -10px;
-    background: linear-gradient(180deg, #8d6e63, #6d4c41);
-    border-radius: 44px 44px 14px 14px;
-    position: relative;
+    position: absolute; left: 10px; top: 0; width: 92px; height: 100%;
+    background: linear-gradient(180deg, #7b6a5a, #5a4a3d);
+    border-radius: 42px 42px 16px 16px;
     box-shadow: 0 6px 12px rgba(0, 0, 0, .35);
   }
   .pt .robe::before { /* cổ áo chéo */
-    content: ""; position: absolute; left: 50%; top: 6px; width: 34px; height: 34px;
-    border-left: 4px solid #4e342e; border-bottom: 4px solid #4e342e;
+    content: ""; position: absolute; left: 50%; top: 6px; width: 32px; height: 32px;
+    border-left: 4px solid #3f332a; border-bottom: 4px solid #3f332a;
     transform: translateX(-50%) rotate(-45deg); border-radius: 0 0 0 6px;
   }
-  .pt .robe::after { /* tay chắp */
-    content: "🙏"; position: absolute; left: 50%; top: 40px; transform: translateX(-50%);
-    font-size: 30px;
+  /* Tay áo + bàn tay; đứng yên / quỳ thì chắp tay trước ngực */
+  .pt .arm {
+    position: absolute; top: 12px; width: 22px; height: 60px; border-radius: 11px; z-index: 1;
+    background: linear-gradient(180deg, #6e5e4f, #54463a);
+    transform-origin: 50% 10px; transition: transform .4s;
   }
+  .pt .arm::after { content: ""; position: absolute; left: 2px; bottom: -8px; width: 18px; height: 18px; border-radius: 50%; background: #e9bf95; }
+  .pt .arm.l { left: 2px; transform: rotate(-48deg); }
+  .pt .arm.r { right: 2px; transform: rotate(48deg); }
+  /* Chân + giày */
+  .pt .legs { position: relative; width: 60px; height: 46px; margin-top: -16px; z-index: 1; transition: height .5s; }
+  .pt .leg { position: absolute; top: 0; width: 20px; height: 100%; border-radius: 8px; background: #3a2f27; transform-origin: 50% 0; }
+  .pt .leg::after { content: ""; position: absolute; bottom: -6px; left: -3px; width: 26px; height: 12px; border-radius: 10px 10px 4px 4px; background: #1b1410; }
+  .pt .leg.l { left: 6px; }
+  .pt .leg.r { right: 6px; }
   .pt .nm {
-    margin-top: 6px; max-width: 160px;
+    margin-top: 10px; max-width: 160px;
     padding: 2px 10px; border-radius: 999px;
-    background: rgba(59, 36, 18, .85); color: var(--paper);
+    background: rgba(35, 27, 23, .85); color: var(--cream);
+    border: 1px solid rgba(198, 161, 91, .6);
     font: 600 19px/1.3 "Be Vietnam Pro", sans-serif;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .pt.speaking .head { border-color: var(--gold); box-shadow: 0 0 0 6px rgba(242, 193, 78, .45), 0 4px 10px rgba(0, 0, 0, .35); }
-  .pt.speaking .robe { animation: bob .8s ease-in-out infinite alternate; }
+  .pt.speaking .head { border-color: var(--gold-light); box-shadow: 0 0 0 6px rgba(232, 199, 126, .4), 0 4px 10px rgba(0, 0, 0, .35); }
+  .pt.speaking:not(.walking):not(.kneel) .torso { animation: bob .9s ease-in-out infinite alternate; }
   @keyframes bob { to { transform: translateY(-4px); } }
-  /* Bước đi: nhún nhẹ, lắc người */
-  .pt.walking .head, .pt.walking .robe { animation: step .55s ease-in-out infinite alternate; }
-  .pt.walking .robe { animation-name: sway-robe; }
-  @keyframes step { from { transform: translateY(0) rotate(-3deg); } to { transform: translateY(-6px) rotate(3deg); } }
-  @keyframes sway-robe { from { transform: translateY(0) rotate(-2deg); } to { transform: translateY(-4px) rotate(2deg); } }
-  /* Dừng lại chắp tay vái */
-  .pt.bowing .head { animation: bow 2s ease-in-out infinite; }
-  @keyframes bow { 0%, 100% { transform: none; } 40%, 60% { transform: translateY(10px) rotate(0deg) scale(.96); } }
+  /* Bước đi: chân bước, tay vung ngược chân, người nhún nhẹ */
+  .pt.walking .fig { animation: stepBob .3s ease-in-out infinite alternate; }
+  .pt.walking .leg.l, .pt.walking .arm.r { animation: swingA .6s ease-in-out infinite alternate; }
+  .pt.walking .leg.r, .pt.walking .arm.l { animation: swingB .6s ease-in-out infinite alternate; }
+  @keyframes stepBob { from { transform: translateY(0); } to { transform: translateY(-5px); } }
+  @keyframes swingA { from { transform: rotate(20deg); } to { transform: rotate(-20deg); } }
+  @keyframes swingB { from { transform: rotate(-20deg); } to { transform: rotate(20deg); } }
+  /* Đứng chắp tay vái */
+  .pt.bowing .head { animation: bow 2.4s ease-in-out infinite; }
+  @keyframes bow { 0%, 100% { transform: none; } 40%, 60% { transform: translateY(10px) scale(.96); } }
+  /* Quỳ: chân gập dưới áo, người thấp xuống; lạy: cúi đầu sát xuống rồi ngẩng lên */
+  .pt.kneel .legs { height: 12px; }
+  .pt.kneel .leg::after { display: none; }
+  .pt.kneel .torso { height: 82px; }
+  .pt.kneel .robe { left: 4px; width: 104px; border-radius: 42px 42px 26px 26px; }
+  .pt.kneel.lay .head { animation: layHead 3.2s ease-in-out infinite; }
+  .pt.kneel.lay .torso { animation: layBody 3.2s ease-in-out infinite; }
+  @keyframes layHead { 0%, 20%, 100% { transform: none; } 45%, 65% { transform: translateY(52px) scale(.9); } }
+  @keyframes layBody { 0%, 20%, 100% { transform: none; } 45%, 65% { transform: scaleY(.72); } }
 
   /* Bong bóng bình luận trên đầu */
   .bubble {
@@ -171,17 +272,17 @@
     max-width: 420px;
     padding: 12px 18px;
     border-radius: 18px;
-    background: var(--paper);
-    border: 3px solid var(--red);
+    background: var(--cream);
+    border: 3px solid var(--gold);
     color: var(--ink);
     font: 500 var(--font)/1.3 "Be Vietnam Pro", sans-serif;
     overflow-wrap: anywhere;
     box-shadow: 0 8px 22px rgba(0, 0, 0, .4);
-    animation: pop .35s cubic-bezier(.2, .9, .3, 1.3) both;
+    animation: pop .4s cubic-bezier(.2, .9, .3, 1.2) both;
   }
   .bubble::after { /* đuôi bong bóng */
     content: ""; position: absolute; top: 100%; left: 50%;
-    border: 14px solid transparent; border-top-color: var(--red);
+    border: 14px solid transparent; border-top-color: var(--gold);
     transform: translateX(-50%);
   }
   .edge-l .bubble { left: 0; transform: none; }
@@ -189,187 +290,324 @@
   .edge-r .bubble { left: auto; right: 0; transform: none; }
   .edge-r .bubble::after { left: auto; right: 46px; transform: none; }
   .bubble.leaving { animation: unpop .3s ease-in both; }
-  @keyframes pop { from { opacity: 0; scale: .6; } }
-  @keyframes unpop { to { opacity: 0; scale: .8; } }
+  @keyframes pop { from { opacity: 0; scale: .7; } }
+  @keyframes unpop { to { opacity: 0; scale: .85; } }
 </style>
 </head>
 <body>
 <div id="stage">
-  <!-- Cảnh nền đầy đủ (chỉ hiện khi có ?nen) -->
+  <!-- Cảnh chánh điện đầy đủ (chỉ hiện khi có ?nen) -->
   <svg id="scene" viewBox="0 0 1080 1920" preserveAspectRatio="none" aria-hidden="true">
     <defs>
-      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#3b2a5a"/>
-        <stop offset=".35" stop-color="#c0607a"/>
-        <stop offset=".6" stop-color="#f6a96b"/>
-        <stop offset="1" stop-color="#fde4b4"/>
+      <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#1c1511"/>
+        <stop offset=".6" stop-color="#2d221b"/>
+        <stop offset="1" stop-color="#38291f"/>
       </linearGradient>
-      <radialGradient id="sun" cx=".5" cy=".5" r=".5">
-        <stop offset="0" stop-color="#fff6d6"/>
-        <stop offset=".5" stop-color="#ffd27a" stop-opacity=".8"/>
-        <stop offset="1" stop-color="#ffd27a" stop-opacity="0"/>
+      <radialGradient id="glowBack" cx=".5" cy=".42" r=".5">
+        <stop offset="0" stop-color="#f3d58f" stop-opacity=".55"/>
+        <stop offset=".45" stop-color="#c6a15b" stop-opacity=".22"/>
+        <stop offset="1" stop-color="#c6a15b" stop-opacity="0"/>
       </radialGradient>
+      <linearGradient id="goldBody" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#f6e2b0"/>
+        <stop offset=".45" stop-color="#d9b46a"/>
+        <stop offset="1" stop-color="#9c7a3c"/>
+      </linearGradient>
+      <linearGradient id="goldEdge" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#f1d79a"/>
+        <stop offset="1" stop-color="#a7843f"/>
+      </linearGradient>
+      <radialGradient id="haloFill" cx=".5" cy=".5" r=".5">
+        <stop offset="0" stop-color="#fff4d2" stop-opacity=".95"/>
+        <stop offset=".55" stop-color="#e8c77e" stop-opacity=".55"/>
+        <stop offset="1" stop-color="#c6a15b" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#5a4130"/>
+        <stop offset="1" stop-color="#2f2219"/>
+      </linearGradient>
+      <linearGradient id="jadeCloth" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#2f4f46"/>
+        <stop offset=".5" stop-color="#436c60"/>
+        <stop offset="1" stop-color="#2f4f46"/>
+      </linearGradient>
+      <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#3b2c22"/>
+        <stop offset="1" stop-color="#1d1611"/>
+      </linearGradient>
+      <radialGradient id="floorGlow" cx=".5" cy="0" r=".7">
+        <stop offset="0" stop-color="#e8c77e" stop-opacity=".28"/>
+        <stop offset="1" stop-color="#e8c77e" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="candleGlow" cx=".5" cy=".5" r=".5">
+        <stop offset="0" stop-color="#ffd98a" stop-opacity=".6"/>
+        <stop offset="1" stop-color="#ffd98a" stop-opacity="0"/>
+      </radialGradient>
+      <!-- Cánh sen (dùng cho tòa sen và bình sen) -->
+      <path id="petal" d="M0 0 C-22 -18 -22 -58 0 -80 C22 -58 22 -18 0 0Z"/>
+      <g id="lotusFlower">
+        <use href="#petal" fill="#f3c6cf" transform="rotate(-50) scale(.8)"/>
+        <use href="#petal" fill="#f3c6cf" transform="rotate(50) scale(.8)"/>
+        <use href="#petal" fill="#efb2bf" transform="rotate(-25) scale(.92)"/>
+        <use href="#petal" fill="#efb2bf" transform="rotate(25) scale(.92)"/>
+        <use href="#petal" fill="#f8d9de"/>
+      </g>
+      <g id="candle">
+        <ellipse cx="0" cy="-70" rx="60" ry="60" fill="url(#candleGlow)"/>
+        <path class="flame" d="M0 -96 C10 -80 10 -66 0 -60 C-10 -66 -10 -80 0 -96Z" fill="#ffcf6b"/>
+        <path d="M0 -84 C4 -76 4 -68 0 -64 C-4 -68 -4 -76 0 -84Z" fill="#fff4d2"/>
+        <rect x="-11" y="-60" width="22" height="70" rx="4" fill="#f8f2e7"/>
+        <rect x="-11" y="-60" width="7" height="70" fill="#e7d8b9"/>
+      </g>
     </defs>
-    <rect width="1080" height="1920" fill="url(#sky)"/>
-    <circle cx="540" cy="900" r="300" fill="url(#sun)"/>
-    <path d="M0 1150 L140 980 L260 1080 L400 900 L540 1040 L700 880 L860 1060 L960 960 L1080 1080 V1920 H0Z" fill="#7a4a6e" opacity=".55"/>
-    <path d="M0 1260 L180 1110 L330 1220 L520 1090 L720 1230 L900 1120 L1080 1240 V1920 H0Z" fill="#4e2f4f" opacity=".7"/>
-    <!-- Tháp chùa phía xa -->
-    <g fill="#3a1f2e">
-      <rect x="447" y="1238" width="186" height="62"/>
-      <path d="M372 1222 Q400 1240 420 1238 H660 Q680 1240 708 1222 L674 1204 H406Z"/>
-      <rect x="458" y="1146" width="165" height="62"/>
-      <path d="M389 1130 Q417 1148 437 1146 H643 Q663 1148 691 1130 L657 1112 H423Z"/>
-      <rect x="468" y="1054" width="144" height="62"/>
-      <path d="M406 1038 Q434 1056 454 1054 H626 Q646 1056 674 1038 L640 1020 H440Z"/>
-      <rect x="479" y="962" width="123" height="62"/>
-      <path d="M423 946 Q451 964 471 962 H609 Q629 964 657 946 L623 928 H457Z"/>
-      <rect x="489" y="870" width="102" height="62"/>
-      <path d="M440 854 Q468 872 488 870 H592 Q612 872 640 854 L606 836 H474Z"/>
-      <rect x="500" y="778" width="81" height="62"/>
-      <path d="M457 762 Q485 780 505 778 H575 Q595 780 623 762 L589 744 H491Z"/>
-      <rect x="510" y="686" width="60" height="62"/>
-      <path d="M474 670 Q502 688 522 686 H558 Q578 688 606 670 L572 652 H508Z"/>
-      <path d="M528 652 L540 576 L552 652Z"/>
-      <circle cx="540" cy="650" r="12"/>
+
+    <!-- Tường chánh điện, vách gỗ -->
+    <rect width="1080" height="1920" fill="url(#wall)"/>
+    <g stroke="#4a372a" stroke-width="3" opacity=".55">
+      <path d="M160 176 V1300 M280 176 V1300 M800 176 V1300 M920 176 V1300"/>
     </g>
-    <!-- Cây hai bên -->
-    <g fill="#2c3b2a">
-      <ellipse cx="170" cy="1250" rx="170" ry="120"/>
-      <ellipse cx="930" cy="1270" rx="190" ry="130"/>
+    <!-- Khám thờ hình vòm -->
+    <path d="M270 1180 V560 Q270 330 540 300 Q810 330 810 560 V1180Z" fill="#1a130f"/>
+    <path d="M270 1180 V560 Q270 330 540 300 Q810 330 810 560 V1180" fill="none" stroke="url(#goldEdge)" stroke-width="8"/>
+    <path d="M296 1180 V566 Q296 356 540 328 Q784 356 784 566 V1180" fill="none" stroke="#c6a15b" stroke-width="2" opacity=".6"/>
+    <ellipse cx="540" cy="700" rx="520" ry="560" fill="url(#glowBack)"/>
+
+    <!-- Hào quang -->
+    <g class="rays" opacity=".45">
+      <g stroke="#e8c77e" stroke-width="3">
+        <path d="M540 620 L540 360 M540 620 L540 880 M540 620 L280 620 M540 620 L800 620 M540 620 L356 436 M540 620 L724 804 M540 620 L724 436 M540 620 L356 804"/>
+        <path d="M540 620 L440 380 M540 620 L640 860 M540 620 L300 520 M540 620 L780 720 M540 620 L640 380 M540 620 L440 860 M540 620 L780 520 M540 620 L300 720" opacity=".6"/>
+      </g>
     </g>
-    <rect y="1300" width="1080" height="620" fill="#cdb38a"/>
-    <path d="M0 1300 H1080" stroke="#a88c60" stroke-width="6"/>
-    <g stroke="#b89b6e" stroke-width="2" opacity=".6">
-      <path d="M0 1400 H1080 M0 1500 H1080 M0 1600 H1080"/>
-      <path d="M540 1300 L200 1920 M540 1300 L880 1920 M540 1300 V1920"/>
+    <circle class="halo" cx="540" cy="620" r="200" fill="url(#haloFill)"/>
+    <circle cx="540" cy="620" r="168" fill="none" stroke="#e8c77e" stroke-width="4" opacity=".8"/>
+    <circle cx="540" cy="620" r="150" fill="none" stroke="#e8c77e" stroke-width="2" opacity=".5"/>
+
+    <!-- Tượng Phật ngồi thiền (cách điệu) -->
+    <g>
+      <!-- thân, y áo -->
+      <path d="M430 760 Q540 700 650 760 L700 960 Q540 1000 380 960Z" fill="url(#goldBody)"/>
+      <path d="M470 740 Q520 820 500 960 M610 740 Q600 840 640 960" stroke="#a7843f" stroke-width="5" fill="none" opacity=".7"/>
+      <!-- chân xếp bằng -->
+      <ellipse cx="540" cy="985" rx="210" ry="66" fill="url(#goldBody)"/>
+      <path d="M350 990 Q540 1040 730 990" stroke="#a7843f" stroke-width="5" fill="none" opacity=".7"/>
+      <!-- tay kết ấn thiền -->
+      <ellipse cx="540" cy="930" rx="74" ry="26" fill="#e3c27f"/>
+      <path d="M476 930 Q540 952 604 930" stroke="#a7843f" stroke-width="4" fill="none"/>
+      <!-- cổ, đầu -->
+      <rect x="518" y="682" width="44" height="40" rx="12" fill="#d9b46a"/>
+      <ellipse cx="484" cy="626" rx="13" ry="38" fill="#d4ad62"/>
+      <ellipse cx="596" cy="626" rx="13" ry="38" fill="#d4ad62"/>
+      <ellipse cx="540" cy="618" rx="60" ry="70" fill="url(#goldBody)"/>
+      <!-- tóc xoắn, nhục kế -->
+      <path d="M480 600 Q482 540 540 536 Q598 540 600 600 Q570 572 540 574 Q510 572 480 600Z" fill="#8c6a2e"/>
+      <ellipse cx="540" cy="530" rx="26" ry="22" fill="#8c6a2e"/>
+      <g fill="#a7843f">
+        <circle cx="505" cy="566" r="5"/><circle cx="525" cy="556" r="5"/><circle cx="545" cy="554" r="5"/><circle cx="565" cy="558" r="5"/><circle cx="582" cy="570" r="5"/>
+        <circle cx="530" cy="524" r="4"/><circle cx="550" cy="524" r="4"/>
+      </g>
+      <!-- gương mặt an tịnh: mắt khép, nụ cười nhẹ -->
+      <g stroke="#8c6a2e" stroke-width="3.5" fill="none" stroke-linecap="round">
+        <path d="M506 622 Q518 630 530 622"/>
+        <path d="M550 622 Q562 630 574 622"/>
+        <path d="M528 660 Q540 667 552 660"/>
+        <path d="M540 628 V646"/>
+      </g>
+      <circle cx="540" cy="600" r="3.5" fill="#8c6a2e"/>
+    </g>
+
+    <!-- Tòa sen -->
+    <g transform="translate(540 1050)">
+      <g fill="#e9cf96" stroke="#b08a45" stroke-width="2">
+        <use href="#petal" transform="translate(-200 10) rotate(-70) scale(.9 .7)"/>
+        <use href="#petal" transform="translate(200 10) rotate(70) scale(.9 .7)"/>
+        <use href="#petal" transform="translate(-150 4) rotate(-45) scale(.95 .8)"/>
+        <use href="#petal" transform="translate(150 4) rotate(45) scale(.95 .8)"/>
+        <use href="#petal" transform="translate(-90 0) rotate(-22) scale(1 .85)"/>
+        <use href="#petal" transform="translate(90 0) rotate(22) scale(1 .85)"/>
+        <use href="#petal" transform="translate(-30 0) rotate(-6) scale(1 .9)"/>
+        <use href="#petal" transform="translate(30 0) rotate(6) scale(1 .9)"/>
+      </g>
+      <rect x="-230" y="6" width="460" height="22" rx="10" fill="url(#goldEdge)"/>
+      <rect x="-190" y="28" width="380" height="70" rx="8" fill="#4a3426"/>
+      <path d="M-190 40 H190 M-190 86 H190" stroke="#c6a15b" stroke-width="3"/>
+    </g>
+
+    <!-- Rèm xanh ngọc rủ hai bên và phía trên -->
+    <path d="M64 176 H1016 V236 Q900 300 780 250 Q660 312 540 262 Q420 312 300 250 Q180 300 64 236Z" fill="url(#jadeCloth)"/>
+    <path d="M64 236 Q180 300 300 250 Q420 312 540 262 Q660 312 780 250 Q900 300 1016 236" fill="none" stroke="#c6a15b" stroke-width="5"/>
+    <path d="M64 176 H220 Q200 600 236 900 Q150 1000 64 1040Z" fill="url(#jadeCloth)" opacity=".95"/>
+    <path d="M1016 176 H860 Q880 600 844 900 Q930 1000 1016 1040Z" fill="url(#jadeCloth)" opacity=".95"/>
+    <path d="M220 176 Q200 600 236 900 Q150 1000 64 1040" fill="none" stroke="#c6a15b" stroke-width="4"/>
+    <path d="M860 176 Q880 600 844 900 Q930 1000 1016 1040" fill="none" stroke="#c6a15b" stroke-width="4"/>
+    <g fill="url(#goldEdge)">
+      <ellipse cx="226" cy="900" rx="22" ry="14"/><ellipse cx="854" cy="900" rx="22" ry="14"/>
+    </g>
+
+    <!-- Chân nến cao hai bên -->
+    <g transform="translate(180 1300)">
+      <rect x="-8" y="-380" width="16" height="380" fill="url(#goldEdge)"/>
+      <ellipse cx="0" cy="-380" rx="40" ry="10" fill="url(#goldEdge)"/>
+      <path d="M-50 0 Q0 -40 50 0Z" fill="url(#goldEdge)"/>
+      <g transform="translate(0 -390)"><use href="#candle"/></g>
+    </g>
+    <g transform="translate(900 1300)">
+      <rect x="-8" y="-380" width="16" height="380" fill="url(#goldEdge)"/>
+      <ellipse cx="0" cy="-380" rx="40" ry="10" fill="url(#goldEdge)"/>
+      <path d="M-50 0 Q0 -40 50 0Z" fill="url(#goldEdge)"/>
+      <g transform="translate(0 -390)"><use href="#candle" class="b"/></g>
+    </g>
+
+    <!-- Bàn thờ -->
+    <rect x="250" y="1150" width="580" height="22" rx="6" fill="url(#goldEdge)"/>
+    <rect x="270" y="1172" width="540" height="128" fill="url(#wood)"/>
+    <rect x="320" y="1192" width="440" height="88" rx="8" fill="#436c60" stroke="#c6a15b" stroke-width="3"/>
+    <g transform="translate(540 1262) scale(.55)" opacity=".95"><use href="#lotusFlower"/></g>
+    <!-- Bình sen trên bàn thờ -->
+    <g transform="translate(330 1150)">
+      <path d="M-26 0 Q-36 -40 -16 -70 H16 Q36 -40 26 0Z" fill="#f8f2e7" stroke="#c6a15b" stroke-width="3"/>
+      <path d="M0 -70 V-140 M0 -100 Q-30 -130 -38 -170 M0 -100 Q30 -130 38 -170" stroke="#4c7a5c" stroke-width="5" fill="none"/>
+      <g transform="translate(0 -138) scale(.55)"><use href="#lotusFlower"/></g>
+      <g transform="translate(-38 -168) scale(.42)"><use href="#lotusFlower"/></g>
+      <g transform="translate(38 -168) scale(.42)"><use href="#lotusFlower"/></g>
+    </g>
+    <g transform="translate(750 1150)">
+      <path d="M-26 0 Q-36 -40 -16 -70 H16 Q36 -40 26 0Z" fill="#f8f2e7" stroke="#c6a15b" stroke-width="3"/>
+      <path d="M0 -70 V-140 M0 -100 Q-30 -130 -38 -170 M0 -100 Q30 -130 38 -170" stroke="#4c7a5c" stroke-width="5" fill="none"/>
+      <g transform="translate(0 -138) scale(.55)"><use href="#lotusFlower"/></g>
+      <g transform="translate(-38 -168) scale(.42)"><use href="#lotusFlower"/></g>
+      <g transform="translate(38 -168) scale(.42)"><use href="#lotusFlower"/></g>
+    </g>
+    <!-- Nến nhỏ và lư hương trên bàn thờ -->
+    <g transform="translate(430 1150) scale(.7)"><use href="#candle"/></g>
+    <g transform="translate(650 1150) scale(.7)"><use href="#candle" class="b"/></g>
+    <g transform="translate(540 1150)">
+      <g fill="#e7e1d6" opacity=".9">
+        <ellipse class="smoke" cx="-10" cy="-70" rx="14" ry="26"/>
+        <ellipse class="smoke b" cx="4" cy="-70" rx="12" ry="24"/>
+        <ellipse class="smoke c" cx="14" cy="-70" rx="14" ry="26"/>
+      </g>
+      <path d="M-8 -40 V-72 M0 -40 V-78 M8 -40 V-72" stroke="#8b5a3a" stroke-width="3"/>
+      <circle cx="-8" cy="-73" r="3" fill="#ff9f5a"/><circle cx="0" cy="-79" r="3" fill="#ff9f5a"/><circle cx="8" cy="-73" r="3" fill="#ff9f5a"/>
+      <path d="M-46 -40 H46 Q42 -6 22 4 H-22 Q-42 -6 -46 -40Z" fill="url(#goldEdge)"/>
+      <rect x="-52" y="-46" width="104" height="8" rx="3" fill="#f1d79a"/>
+    </g>
+
+    <!-- Sàn gỗ bóng, phản chiếu ánh vàng -->
+    <rect y="1300" width="1080" height="620" fill="url(#floor)"/>
+    <rect y="1300" width="1080" height="620" fill="url(#floorGlow)"/>
+    <path d="M0 1300 H1080" stroke="#c6a15b" stroke-width="4"/>
+    <g stroke="#c6a15b" stroke-width="1.5" opacity=".18">
+      <path d="M0 1420 H1080 M0 1560 H1080 M0 1720 H1080"/>
+      <path d="M540 1300 L120 1920 M540 1300 L960 1920 M540 1300 L330 1920 M540 1300 L750 1920"/>
+    </g>
+    <!-- Thảm lối giữa: lối vào dâng lễ -->
+    <path d="M470 1392 H610 L680 1920 H400Z" fill="#6b2f24" opacity=".85"/>
+    <path d="M470 1392 L400 1920 M610 1392 L680 1920" stroke="#c6a15b" stroke-width="4"/>
+    <path d="M486 1392 L424 1920 M594 1392 L656 1920" stroke="#c6a15b" stroke-width="1.5" opacity=".6"/>
+    <!-- Bồ đoàn (đệm ngồi) xanh ngọc -->
+    <g fill="#436c60" opacity=".75">
+      <ellipse cx="340" cy="1378" rx="50" ry="13"/><ellipse cx="440" cy="1378" rx="50" ry="13"/><ellipse cx="540" cy="1378" rx="50" ry="13"/><ellipse cx="640" cy="1378" rx="50" ry="13"/><ellipse cx="740" cy="1378" rx="50" ry="13"/>
     </g>
   </svg>
 
-  <!-- Khung cổng chùa: mái, cột, đèn lồng, sân, hồ sen (luôn hiện) -->
+  <div id="motes"></div>
+
+  <!-- Khung luôn hiện: cột gỗ viền vàng, sàn trước (phần giữa trong suốt để thấy camera khi không có ?nen) -->
   <svg viewBox="0 0 1080 1920" aria-hidden="true">
     <defs>
-      <pattern id="tiles" width="22" height="40" patternUnits="userSpaceOnUse">
-        <rect width="22" height="40" fill="#7e1d14"/>
-        <path d="M0 0 V40" stroke="#5a120c" stroke-width="5"/>
-        <path d="M0 38 Q11 30 22 38" stroke="#9c2a1f" stroke-width="3" fill="none"/>
-      </pattern>
       <linearGradient id="pillar" x1="0" x2="1">
-        <stop offset="0" stop-color="#5c0f0f"/>
-        <stop offset=".45" stop-color="#b52525"/>
-        <stop offset="1" stop-color="#5c0f0f"/>
+        <stop offset="0" stop-color="#1f1712"/>
+        <stop offset=".5" stop-color="#4a3628"/>
+        <stop offset="1" stop-color="#1f1712"/>
       </linearGradient>
       <linearGradient id="gold" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0" stop-color="#ffe08a"/>
-        <stop offset="1" stop-color="#b8860b"/>
+        <stop offset="0" stop-color="#f1d79a"/>
+        <stop offset="1" stop-color="#a7843f"/>
       </linearGradient>
-      <radialGradient id="lanternGlow" cx=".5" cy=".5" r=".5">
-        <stop offset="0" stop-color="#ffcf6b" stop-opacity=".7"/>
-        <stop offset="1" stop-color="#ffcf6b" stop-opacity="0"/>
-      </radialGradient>
-      <linearGradient id="water" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0" stop-color="#2f6b6a"/>
-        <stop offset="1" stop-color="#173e45"/>
-      </linearGradient>
-      <linearGradient id="stone" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0" stop-color="#d9c7a5"/>
-        <stop offset="1" stop-color="#a99070"/>
-      </linearGradient>
-      <g id="lotus">
-        <path d="M0 0 C-14 -20 -10 -44 0 -56 C10 -44 14 -20 0 0Z" fill="#f7a8c0"/>
-        <path d="M0 0 C-30 -8 -40 -30 -36 -44 C-20 -38 -8 -22 0 0Z" fill="#f48fb1"/>
-        <path d="M0 0 C30 -8 40 -30 36 -44 C20 -38 8 -22 0 0Z" fill="#f48fb1"/>
-        <path d="M0 0 C-36 4 -54 -10 -58 -22 C-38 -22 -16 -12 0 0Z" fill="#ec7aa0"/>
-        <path d="M0 0 C36 4 54 -10 58 -22 C38 -22 16 -12 0 0Z" fill="#ec7aa0"/>
-        <circle cy="-14" r="6" fill="#ffd54f"/>
-      </g>
-      <g id="lanternShape">
-        <rect x="-8" y="0" width="16" height="40" fill="#3b2412"/>
-        <ellipse cx="0" cy="110" rx="120" ry="120" fill="url(#lanternGlow)" class="glow"/>
-        <rect x="-34" y="40" width="68" height="14" rx="4" fill="url(#gold)"/>
-        <ellipse cx="0" cy="110" rx="58" ry="62" fill="#d42a1e"/>
-        <path d="M-30 58 Q-46 110 -30 164 M0 48 V172 M30 58 Q46 110 30 164" stroke="#a51a12" stroke-width="3" fill="none"/>
-        <text x="0" y="122" text-anchor="middle" font-family="Noto Serif, serif" font-weight="700" font-size="36" fill="#ffd77a">卍</text>
-        <rect x="-34" y="166" width="68" height="14" rx="4" fill="url(#gold)"/>
-        <path d="M-10 180 L-14 250 M0 180 V258 M10 180 L14 250" stroke="#e0a82e" stroke-width="5" stroke-linecap="round"/>
-      </g>
+      <path id="fPetal" d="M0 0 C-16 -14 -16 -42 0 -58 C16 -42 16 -14 0 0Z"/>
     </defs>
-
     <!-- Cột -->
-    <rect x="0" y="330" width="64" height="1590" fill="url(#pillar)"/>
-    <rect x="1016" y="330" width="64" height="1590" fill="url(#pillar)"/>
+    <rect x="0" y="176" width="64" height="1744" fill="url(#pillar)"/>
+    <rect x="1016" y="176" width="64" height="1744" fill="url(#pillar)"/>
     <g fill="url(#gold)">
-      <rect x="0" y="372" width="64" height="16"/><rect x="1016" y="372" width="64" height="16"/>
-      <rect x="0" y="1560" width="64" height="16"/><rect x="1016" y="1560" width="64" height="16"/>
+      <rect x="0" y="200" width="64" height="10"/><rect x="1016" y="200" width="64" height="10"/>
+      <rect x="0" y="1290" width="64" height="10"/><rect x="1016" y="1290" width="64" height="10"/>
+      <rect x="0" y="1860" width="64" height="10"/><rect x="1016" y="1860" width="64" height="10"/>
     </g>
-
-    <!-- Mái tầng dưới -->
-    <path d="M-20 250 Q30 236 70 196 L1010 196 Q1050 236 1100 250 L1100 330 Q540 352 -20 330Z" fill="url(#tiles)"/>
-    <path d="M-20 330 Q540 352 1100 330" stroke="url(#gold)" stroke-width="10" fill="none"/>
-    <!-- Xà ngang -->
-    <rect x="0" y="336" width="1080" height="40" fill="#5c0f0f"/>
-    <path d="M0 340 H1080 M0 372 H1080" stroke="url(#gold)" stroke-width="4"/>
-
-    <!-- Mái tầng trên, đầu đao cong -->
-    <path d="M150 70 Q120 54 96 20 Q104 70 150 110 L80 180 Q40 182 14 150 Q22 210 96 214 Q540 250 984 214 Q1058 210 1066 150 Q1040 182 1000 180 L930 110 Q976 70 984 20 Q960 54 930 70Z" fill="url(#tiles)"/>
-    <path d="M96 214 Q540 250 984 214" stroke="url(#gold)" stroke-width="8" fill="none"/>
-    <!-- Bờ nóc vàng, lưỡng long chầu nguyệt cách điệu -->
-    <path d="M150 70 H930" stroke="url(#gold)" stroke-width="14" stroke-linecap="round"/>
-    <path d="M96 20 Q118 62 150 70 M984 20 Q962 62 930 70" stroke="url(#gold)" stroke-width="10" fill="none" stroke-linecap="round"/>
-    <g fill="none" stroke="url(#gold)" stroke-width="9" stroke-linecap="round">
-      <path d="M260 66 C300 18 360 18 380 44 C396 64 430 60 452 40"/>
-      <path d="M820 66 C780 18 720 18 700 44 C684 64 650 60 628 40"/>
-    </g>
-    <circle cx="540" cy="34" r="26" fill="#ffd54f" class="glow"/>
-    <path d="M540 4 Q556 20 548 34 Q562 24 566 40 Q556 64 540 62 Q524 64 514 40 Q518 24 532 34 Q524 20 540 4Z" fill="#ff9f43" opacity=".85"/>
-
-    <!-- Bảng hiệu -->
-    <rect x="330" y="360" width="420" height="84" rx="8" fill="#5c0f0f" stroke="url(#gold)" stroke-width="6"/>
-    <text x="540" y="415" text-anchor="middle" font-family="Noto Serif, serif" font-weight="700" font-size="36" fill="#ffd77a" letter-spacing="2">NAM MÔ A DI ĐÀ PHẬT</text>
-
-    <!-- Đèn lồng -->
-    <g transform="translate(170 376)"><g class="lantern"><use href="#lanternShape"/></g></g>
-    <g transform="translate(910 376)"><g class="lantern b"><use href="#lanternShape"/></g></g>
-
-    <!-- Sân đá và bậc thềm -->
-    <path d="M0 1640 H1080 V1920 H0Z" fill="url(#stone)"/>
-    <path d="M0 1640 H1080 M0 1700 H1080" stroke="#8c7456" stroke-width="4"/>
-    <!-- Hồ sen -->
-    <path d="M0 1760 Q540 1730 1080 1760 V1920 H0Z" fill="url(#water)"/>
-    <g fill="#3f8f4f">
-      <ellipse cx="120" cy="1830" rx="70" ry="22"/>
-      <ellipse cx="330" cy="1880" rx="80" ry="24"/>
-      <ellipse cx="610" cy="1820" rx="64" ry="20"/>
-      <ellipse cx="820" cy="1876" rx="84" ry="24"/>
-      <ellipse cx="990" cy="1820" rx="66" ry="20"/>
-    </g>
-    <use href="#lotus" transform="translate(150 1832)"/>
-    <use href="#lotus" transform="translate(470 1862) scale(1.15)"/>
-    <use href="#lotus" transform="translate(760 1830) scale(.9)"/>
-    <use href="#lotus" transform="translate(960 1870) scale(1.1)"/>
-
-    <!-- Lư hương và khói -->
-    <g transform="translate(540 1640)">
-      <g fill="#cfd6d6" opacity=".9">
-        <ellipse class="smoke" cx="-14" cy="-70" rx="16" ry="30"/>
-        <ellipse class="smoke b" cx="4" cy="-70" rx="14" ry="28"/>
-        <ellipse class="smoke c" cx="16" cy="-70" rx="16" ry="30"/>
-      </g>
-      <path d="M-10 -56 V-90 M0 -56 V-96 M10 -56 V-90" stroke="#8b3a1a" stroke-width="4"/>
-      <circle cx="-10" cy="-92" r="4" fill="#ff7043"/><circle cx="0" cy="-98" r="4" fill="#ff7043"/><circle cx="10" cy="-92" r="4" fill="#ff7043"/>
-      <path d="M-80 -56 H80 Q76 10 40 30 H-40 Q-76 10 -80 -56Z" fill="#8a6a2f"/>
-      <path d="M-90 -62 H90 V-50 H-90Z" fill="url(#gold)"/>
-      <path d="M-40 30 L-56 66 M40 30 L56 66 M0 30 V66" stroke="#6b4f1f" stroke-width="10" stroke-linecap="round"/>
+    <!-- Viền hoa sen chạy dưới chân -->
+    <path d="M64 1876 H1016" stroke="url(#gold)" stroke-width="3"/>
+    <g fill="#c6a15b" opacity=".85">
+      <use href="#fPetal" transform="translate(160 1900) scale(.5)"/>
+      <use href="#fPetal" transform="translate(350 1900) scale(.5)"/>
+      <use href="#fPetal" transform="translate(540 1900) scale(.6)"/>
+      <use href="#fPetal" transform="translate(730 1900) scale(.5)"/>
+      <use href="#fPetal" transform="translate(920 1900) scale(.5)"/>
     </g>
   </svg>
+
+  <!-- Đầu trang -->
+  <div id="header">
+    <svg viewBox="-60 -70 120 80" aria-hidden="true">
+      <g fill="#c6a15b">
+        <path d="M0 0 C-16 -14 -16 -42 0 -60 C16 -42 16 -14 0 0Z"/>
+        <path d="M0 0 C-30 -6 -44 -28 -40 -44 C-22 -38 -8 -20 0 0Z" opacity=".85"/>
+        <path d="M0 0 C30 -6 44 -28 40 -44 C22 -38 8 -20 0 0Z" opacity=".85"/>
+        <path d="M0 0 C-38 4 -56 -10 -58 -22 C-38 -22 -16 -12 0 0Z" opacity=".65"/>
+        <path d="M0 0 C38 4 56 -10 58 -22 C38 -22 16 -12 0 0Z" opacity=".65"/>
+      </g>
+      <path d="M-46 6 Q0 -2 46 6" stroke="#c6a15b" stroke-width="3" fill="none"/>
+    </svg>
+    <div class="name">
+      <h1>CHÙA ONLINE</h1>
+      <p>TÂM AN · NAM MÔ A DI ĐÀ PHẬT</p>
+    </div>
+    <svg viewBox="-60 -70 120 80" aria-hidden="true" style="transform: scaleX(-1)">
+      <g fill="#c6a15b">
+        <path d="M0 0 C-16 -14 -16 -42 0 -60 C16 -42 16 -14 0 0Z"/>
+        <path d="M0 0 C-30 -6 -44 -28 -40 -44 C-22 -38 -8 -20 0 0Z" opacity=".85"/>
+        <path d="M0 0 C30 -6 44 -28 40 -44 C22 -38 8 -20 0 0Z" opacity=".85"/>
+        <path d="M0 0 C-38 4 -56 -10 -58 -22 C-38 -22 -16 -12 0 0Z" opacity=".65"/>
+        <path d="M0 0 C38 4 56 -10 58 -22 C38 -22 16 -12 0 0Z" opacity=".65"/>
+      </g>
+      <path d="M-46 6 Q0 -2 46 6" stroke="#c6a15b" stroke-width="3" fill="none"/>
+    </svg>
+  </div>
 
   <div class="couplet l">PHƯỚC ĐIỀN</div>
   <div class="couplet r">TỪ BI HỶ XẢ</div>
 
-  <div id="welcome" role="status"></div>
-
   <div id="count">Phật tử đang dự: 0</div>
+  <div id="welcome" role="status"></div>
   <div id="crowd"></div>
+
+  <div id="thanks" role="status" aria-live="polite">
+    <svg viewBox="-85 -100 170 110" aria-hidden="true">
+      <defs>
+        <linearGradient id="tGold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#fff1c9"/>
+          <stop offset="1" stop-color="#c6a15b"/>
+        </linearGradient>
+        <radialGradient id="tGlow" cx=".5" cy=".6" r=".5">
+          <stop offset="0" stop-color="#ffe6a8" stop-opacity=".7"/>
+          <stop offset="1" stop-color="#ffe6a8" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <ellipse cx="0" cy="-30" rx="85" ry="70" fill="url(#tGlow)"/>
+      <g fill="url(#tGold)" stroke="#9c7a3c" stroke-width="1.5">
+        <path class="petal p3" d="M0 0 C-44 6 -70 -10 -76 -26 C-48 -28 -20 -14 0 0Z"/>
+        <path class="petal p3" d="M0 0 C44 6 70 -10 76 -26 C48 -28 20 -14 0 0Z"/>
+        <path class="petal p2" d="M0 0 C-36 -8 -54 -36 -50 -56 C-28 -48 -10 -24 0 0Z"/>
+        <path class="petal p2" d="M0 0 C36 -8 54 -36 50 -56 C28 -48 10 -24 0 0Z"/>
+        <path class="petal" d="M0 0 C-20 -18 -20 -56 0 -80 C20 -56 20 -18 0 0Z"/>
+      </g>
+    </svg>
+    <div class="t1">🙏 Thành tâm tri ân</div>
+    <div class="t2" id="thanksName"></div>
+    <div class="t3">Đã phát tâm dâng lễ</div>
+    <div class="t4">Kính chúc thân tâm an lạc</div>
+  </div>
 </div>
 
 <script type="module">
@@ -390,6 +628,19 @@
   new ResizeObserver(fit).observe(document.documentElement);
   fit();
 
+  // Bụi sáng vàng bay lên từ bàn thờ (chỉ hiện trong cảnh nền đầy đủ)
+  const rand = (a, b) => a + Math.random() * (b - a);
+  for (let i = 0; i < 22; i++) {
+    const m = document.createElement('i');
+    m.style.left = `${rand(250, 830)}px`;
+    m.style.setProperty('--dx', `${rand(-80, 80)}px`);
+    m.style.animationDuration = `${rand(11, 19)}s`;
+    m.style.animationDelay = `${-rand(0, 19)}s`;
+    const size = rand(5, 11);
+    m.style.width = m.style.height = `${size}px`;
+    $('motes').append(m);
+  }
+
   function avatarEl(person, cls) {
     let el;
     if (person.avatar) {
@@ -402,18 +653,24 @@
     return el;
   }
 
-  // ---------- Sân chùa: mỗi người xem là một Phật tử ----------
-  // 3 lối đi trong sân (vị trí chân); lối xa nhỏ hơn và đi chậm hơn để có chiều sâu
-  const LANES = [
-    { y: 1250, s: 0.78 },
-    { y: 1420, s: 0.89 },
-    { y: 1600, s: 1 },
-  ];
+  // ---------- Chánh điện: mỗi người xem là một Phật tử ----------
+  // Mọi người xếp hàng 2 bên; lối giữa là lối vào dâng lễ. Mỗi lượt 3–5 người đi lối giữa lên bồ đoàn
+  // quỳ lạy, dâng vật phẩm (bay lên bàn thờ), rồi đi lối giữa xuống và về cuối hàng. Ai đã donate được xếp lên trước.
+  const KNEEL_Y = 1380;
+  const KNEEL_SPOTS = [340, 440, 540, 640, 740].map((x) => ({ x, taken: null }));
+  const AISLE_X = 540;
+  const AISLE_END_Y = 1880;
+  const scaleAt = (y) => 0.72 + (y - KNEEL_Y) * (1 - 0.72) / (1800 - KNEEL_Y);
   const MAX_PEOPLE = 16;
-  const X_MIN = 130;
-  const X_MAX = 950;
-  const crowd = Array(MAX_PEOPLE).fill(null); // { person, el, lastActive, lane, x, dir, speed, pauseUntil, nextPauseAt }
-  const rand = (a, b) => a + Math.random() * (b - a);
+  // Chỗ đứng trong hàng: chẵn bên trái, lẻ bên phải; hàng chéo nhẹ ra mép để thấy rõ từng người
+  const SLOT = (i) => {
+    const k = Math.floor(i / 2);
+    const side = i % 2 ? 1 : -1;
+    return { x: AISLE_X + side * (200 + k * 30), y: 1440 + k * 60 };
+  };
+  const crowd = Array(MAX_PEOPLE).fill(null); // { person, el, lastActive, x, y, state, path, spot, item, kneelUntil }
+  const line = []; // thứ tự xếp hàng
+  const known = new Map(); // username -> thông tin người xem (để có avatar khi tặng quà)
   let total = 0;
   let viewers = 0;
 
@@ -421,19 +678,57 @@
     $('count').textContent = viewers ? `Phật tử đang dự: ${viewers}` : `Phật tử đã về: ${total}`;
   }
 
+  // Hình vật phẩm: hoa hồng / Rosa vẽ sẵn, quà khác dùng biểu tượng hộp quà
+  const BUD = '<svg viewBox="0 0 60 60"><path d="M30 30 L30 56" stroke="#16a34a" stroke-width="4" stroke-linecap="round"/><path d="M30 44 C20 38 13 42 12 48 C20 50 26 48 30 44Z" fill="#22c55e"/><path d="M30 40 C40 34 47 38 48 44 C40 46 34 44 30 40Z" fill="#4ade80"/><path d="M17 16 C17 6 43 6 43 16 C43 28 36 33 30 33 C24 33 17 28 17 16Z" fill="#f472b6"/><path d="M17 16 C22 12 28 14 30 20 C26 26 20 26 17 16Z" fill="#ec4899"/><path d="M43 16 C38 12 32 14 30 20 C34 26 40 26 43 16Z" fill="#db2777"/><path d="M24 10 C27 6 33 6 36 10 C33 13 27 13 24 10Z" fill="#fbcfe8"/></svg>';
+  const ROSA = '<svg viewBox="0 0 60 60"><path d="M14 46 C6 46 3 52 4 56 C12 57 18 53 20 48Z" fill="#16a34a"/><path d="M46 46 C54 46 57 52 56 56 C48 57 42 53 40 48Z" fill="#22c55e"/><circle cx="30" cy="30" r="24" fill="#ef4444"/><path d="M8 30 C8 16 18 8 30 8 C22 14 18 22 18 30Z" fill="#f87171"/><path d="M52 30 C52 44 42 52 30 52 C38 46 42 38 42 30Z" fill="#dc2626"/><circle cx="30" cy="30" r="16" fill="#f87171"/><path d="M16 32 C18 20 26 16 34 18 C26 20 22 26 22 34Z" fill="#fca5a5"/><circle cx="30" cy="30" r="9" fill="#ef4444"/><path d="M26 30 C26 25 34 25 34 30 C34 34 29 35 28 32 C27 30 30 28 31 30" fill="none" stroke="#b91c1c" stroke-width="2" stroke-linecap="round"/></svg>';
+  function renderItem(p) {
+    const box = p.el.querySelector('.item');
+    box.classList.remove('offer');
+    if (!p.item) return box.replaceChildren();
+    const g = String(p.item.gift).toLowerCase();
+    const pic = document.createElement('div');
+    if (g === 'rosa') pic.innerHTML = ROSA;
+    else if (g === 'rose') pic.innerHTML = BUD;
+    else pic.innerHTML = '<span class="emo">🎁</span>';
+    box.replaceChildren(...pic.childNodes);
+    if (p.item.count > 1) box.append(Object.assign(document.createElement('span'), { className: 'x', textContent: `x${p.item.count}` }));
+  }
+
+  const div = (className, ...kids) => {
+    const el = Object.assign(document.createElement('div'), { className });
+    el.append(...kids);
+    return el;
+  };
   function figure(person) {
-    const el = document.createElement('div');
-    el.className = 'pt walking';
-    el.append(
-      avatarEl(person, 'head'),
-      Object.assign(document.createElement('div'), { className: 'robe' }),
+    const el = div('pt walking',
+      div('item'),
+      div('fig',
+        avatarEl(person, 'head'),
+        div('torso', div('arm l'), div('robe'), div('arm r')),
+        div('legs', div('leg l'), div('leg r')),
+      ),
       Object.assign(document.createElement('div'), { className: 'nm', textContent: person.nickname || person.username }),
     );
     $('crowd').append(el);
     return el;
   }
 
-  // Đưa một người vào sân (nếu chưa có). Hết chỗ thì thay người im lặng lâu nhất.
+  function releaseSpot(p) {
+    if (p.spot) p.spot.taken = null;
+    p.spot = null;
+  }
+  // Vào hàng: người có vật phẩm đứng sau những người có vật phẩm khác, trước người chưa donate
+  function joinLine(p) {
+    const at = line.indexOf(p);
+    if (at >= 0) line.splice(at, 1);
+    if (p.item) {
+      const firstPlain = line.findIndex((q) => !q.item);
+      line.splice(firstPlain < 0 ? line.length : firstPlain, 0, p);
+    } else line.push(p);
+    p.state = 'line';
+  }
+
+  // Đưa một người vào chánh điện (nếu chưa có). Hết chỗ thì thay người im lặng lâu nhất đang đứng hàng.
   function place(person, speaking = new Set()) {
     let i = crowd.findIndex((c) => c?.person.username === person.username);
     if (i >= 0) {
@@ -444,67 +739,151 @@
     if (i < 0) {
       let oldest = -1;
       crowd.forEach((c, j) => {
-        if (!speaking.has(c.person.username) && (oldest < 0 || c.lastActive < crowd[oldest].lastActive)) oldest = j;
+        if (c.state !== 'line' || c.item || speaking.has(c.person.username)) return;
+        if (oldest < 0 || c.lastActive < crowd[oldest].lastActive) oldest = j;
       });
       if (oldest < 0) return null;
       i = oldest;
-      const old = crowd[i].el;
-      old.classList.add('leaving');
-      old.addEventListener('animationend', () => old.remove(), { once: true });
+      const gone = crowd[i];
+      line.splice(line.indexOf(gone), 1);
+      gone.el.classList.add('leaving');
+      gone.el.addEventListener('animationend', () => gone.el.remove(), { once: true });
     }
-    const now = performance.now();
-    crowd[i] = {
+    const p = {
       person,
       el: figure(person),
       lastActive: Date.now(),
-      lane: LANES[i % LANES.length],
-      x: rand(X_MIN, X_MAX),
-      dir: Math.random() < 0.5 ? -1 : 1,
-      speed: rand(28, 60),
-      pauseUntil: 0,
-      nextPauseAt: now + rand(3000, 9000),
+      x: AISLE_X + (Math.random() < 0.5 ? -1 : 1) * rand(40, 80),
+      y: AISLE_END_Y, // vào từ cuối lối giữa
+      state: 'line',
+      path: [],
+      spot: null,
+      item: null,
     };
-    move(crowd[i]);
-    return crowd[i];
+    crowd[i] = p;
+    joinLine(p);
+    move(p);
+    return p;
+  }
+
+  // Thêm vật phẩm donate lên đầu người tặng, xếp họ lên trước trong hàng
+  function addItem(entry) {
+    const person = known.get(entry.username) ?? { username: entry.username, nickname: entry.nickname };
+    const p = place(person, speakingNow);
+    if (!p) return;
+    p.item = p.item && p.item.gift === entry.gift ? { gift: entry.gift, count: p.item.count + (entry.count || 1) } : { gift: entry.gift, count: entry.count || 1 };
+    renderItem(p);
+    if (p.state === 'line') joinLine(p);
   }
 
   function move(p) {
-    const { y, s } = p.lane;
-    p.el.style.transform = `translate(${p.x - 75}px, ${y}px) translateY(-100%) scale(${s})`;
-    if (!p.el.classList.contains('speaking')) p.el.style.zIndex = String(y);
+    const s = scaleAt(p.y);
+    p.el.style.transform = `translate(${p.x - 75}px, ${p.y}px) translateY(-100%) scale(${s})`;
+    if (!p.el.classList.contains('speaking')) p.el.style.zIndex = String(Math.round(p.y));
     // Bong bóng không tràn ra ngoài khung khi người đứng sát mép
     p.el.classList.toggle('edge-l', p.x < 300);
     p.el.classList.toggle('edge-r', p.x > 780);
   }
 
-  // Vòng lặp đi lại: đi theo lối, tới mép thì quay lại, thỉnh thoảng dừng chắp tay vái
+  // Đi thẳng tới (tx, ty); trả về true khi đã tới nơi
+  function walkTo(p, tx, ty, dt) {
+    const dx = tx - p.x;
+    const dy = ty - p.y;
+    const d = Math.hypot(dx, dy);
+    const step = 75 * scaleAt(p.y) * dt;
+    if (d <= step) {
+      p.x = tx;
+      p.y = ty;
+      return true;
+    }
+    p.x += (dx / d) * step;
+    p.y += (dy / d) * step;
+    return false;
+  }
+  // Đi theo các điểm trong path; trả về true khi hết đường
+  function follow(p, dt) {
+    while (p.path.length && walkTo(p, p.path[0].x, p.path[0].y, dt)) p.path.shift();
+    return !p.path.length;
+  }
+
+  // Lượt dâng lễ: khi bồ đoàn trống hết thì gọi 3–5 người đầu hàng đi lối giữa lên
+  let nextBatchAt = performance.now() + 2500;
+  function callBatch(now) {
+    if (now < nextBatchAt || KNEEL_SPOTS.some((k) => k.taken)) return;
+    const n = Math.min(line.length, 3 + Math.floor(Math.random() * 3));
+    if (!n) return;
+    const batch = line.splice(0, n);
+    // xếp vào bồ đoàn từ giữa ra hai bên
+    const order = [2, 1, 3, 0, 4];
+    batch.forEach((p, j) => {
+      const spot = KNEEL_SPOTS[order[j]];
+      spot.taken = p;
+      p.spot = spot;
+      p.state = 'go';
+      const laneX = AISLE_X + (p.x < AISLE_X ? -30 : 30);
+      p.path = [{ x: laneX, y: Math.max(p.y, KNEEL_Y + 60) }, { x: laneX, y: KNEEL_Y + 40 }, { x: spot.x, y: KNEEL_Y }];
+    });
+    nextBatchAt = Infinity;
+  }
+
+  // Vòng lặp: đứng hàng (đi tới đúng chỗ của mình), lượt tới thì đi lối giữa lên quỳ lạy, dâng lễ rồi về cuối hàng
   let last = performance.now();
   function tick(now) {
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
+    callBatch(now);
+    line.forEach((p, i) => {
+      if (i < MAX_PEOPLE) p.slot = SLOT(i);
+    });
+    let anyAtAltar = false;
     for (const p of crowd) {
       if (!p) continue;
-      const speaking = p.el.classList.contains('speaking');
-      if (!speaking && now >= p.nextPauseAt && now >= p.pauseUntil) {
-        p.pauseUntil = now + rand(1500, 4000);
-        p.nextPauseAt = p.pauseUntil + rand(4000, 10000);
-        if (Math.random() < 0.35) p.dir *= -1; // dừng xong có khi quay đầu
+      let walking = false;
+      if (p.state === 'line') {
+        walking = !walkTo(p, p.slot.x, p.slot.y, dt);
+      } else if (p.state === 'go') {
+        walking = !follow(p, dt);
+        if (!walking) {
+          p.state = 'kneel';
+          p.kneelUntil = now + rand(8000, 11000);
+          // dâng vật phẩm: bay lên bàn thờ
+          if (p.item) {
+            const box = p.el.querySelector('.item');
+            setTimeout(() => {
+              box.classList.add('offer');
+              box.addEventListener('animationend', () => { p.item = null; renderItem(p); }, { once: true });
+            }, 2500);
+          }
+        }
+      } else if (p.state === 'kneel') {
+        if (now >= p.kneelUntil) {
+          releaseSpot(p);
+          p.state = 'back';
+          const laneX = AISLE_X + (p.x < AISLE_X ? -30 : 30);
+          p.path = [{ x: laneX, y: KNEEL_Y + 40 }, { x: laneX, y: AISLE_END_Y }];
+        }
+      } else if (p.state === 'back') {
+        walking = !follow(p, dt);
+        if (!walking) joinLine(p);
       }
-      const walking = !speaking && now >= p.pauseUntil;
+      if (p.state === 'go' || p.state === 'kneel') anyAtAltar = true;
+      const kneeling = p.state === 'kneel';
       p.el.classList.toggle('walking', walking);
-      p.el.classList.toggle('bowing', !speaking && !walking);
-      if (walking) {
-        p.x += p.dir * p.speed * p.lane.s * dt;
-        if (p.x < X_MIN) { p.x = X_MIN; p.dir = 1; }
-        if (p.x > X_MAX) { p.x = X_MAX; p.dir = -1; }
-      }
+      p.el.classList.toggle('kneel', kneeling);
+      p.el.classList.toggle('lay', kneeling);
+      p.el.classList.toggle('bowing', !walking && !kneeling && !p.el.classList.contains('speaking'));
       move(p);
     }
+    // lượt trước đã rời bồ đoàn thì nghỉ một chút rồi gọi lượt sau
+    if (!anyAtAltar && nextBatchAt === Infinity) nextBatchAt = now + 2500;
     requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
 
+  if (params.has('preview')) window.thuVatPham = (username, gift = 'Rose', count = 1) => addItem({ username, nickname: username, gift, count });
+
   function addMember(m) {
+    known.set(m.username, m);
     place(m, speakingNow);
   }
 
@@ -529,8 +908,35 @@
     el.classList.add('show');
     setTimeout(() => {
       el.classList.remove('show');
-      setTimeout(nextWelcome, 450);
-    }, 2600);
+      setTimeout(nextWelcome, 500);
+    }, 2800);
+  }
+
+  // ---------- Thành tâm tri ân khi có người tặng quà (hoa sen vàng nở, 6 giây, xếp hàng) ----------
+  // Không hiện số xu / số tiền, chỉ tên công khai
+  const thanksQueue = [];
+  let thanking = false;
+  function thank(entry) {
+    const name = entry.nickname || entry.username;
+    if (thanksQueue.some((n) => n === name)) return; // một người tặng liên tục chỉ tri ân một lần trong hàng chờ
+    thanksQueue.push(name);
+    if (thanksQueue.length > 6) thanksQueue.shift();
+    if (!thanking) nextThanks();
+  }
+  function nextThanks() {
+    const name = thanksQueue.shift();
+    const box = $('thanks');
+    if (!name) {
+      thanking = false;
+      return;
+    }
+    thanking = true;
+    $('thanksName').textContent = `Phật tử ${name}`;
+    box.classList.add('show');
+    setTimeout(() => {
+      box.classList.remove('show');
+      setTimeout(nextThanks, 900);
+    }, 6000);
   }
 
   // ---------- Bình luận hiện thành bong bóng trên đầu người bình luận ----------
@@ -555,13 +961,21 @@
     for (const spot of crowd) {
       if (!spot || speakingNow.has(spot.person.username)) continue;
       spot.el.classList.remove('speaking');
-      spot.el.style.zIndex = String(spot.lane.y);
+      spot.el.style.zIndex = String(Math.round(spot.y));
       const bubble = spot.el.querySelector('.bubble:not(.leaving)');
       if (bubble) {
         bubble.classList.add('leaving');
         bubble.addEventListener('animationend', () => bubble.remove(), { once: true });
       }
     }
+  }
+
+  function resetCrowd() {
+    for (const p of crowd) p?.el.remove();
+    crowd.fill(null);
+    line.length = 0;
+    KNEEL_SPOTS.forEach((k) => (k.taken = null));
+    nextBatchAt = performance.now() + 2500;
   }
 
   function applySettings(s) {
@@ -572,9 +986,11 @@
     switch (msg.type) {
       case 'hello':
         applySettings(msg.settings);
-        for (const spot of crowd) spot?.el.remove();
-        crowd.fill(null);
+        resetCrowd();
+        for (const m of msg.members) known.set(m.username, m);
         msg.members.slice(-MAX_PEOPLE).forEach((m) => place(m));
+        // quà trong 10 phút gần đây: hiện vật phẩm trên đầu người tặng
+        for (const g of (msg.gifts ?? []).filter((g) => Date.now() - g.at < 10 * 60 * 1000)) addItem(g);
         total = msg.members.length;
         viewers = msg.viewers;
         renderCount();
@@ -588,14 +1004,15 @@
         break;
       case 'members':
         total = 0;
-        for (const spot of crowd) spot?.el.remove();
-        crowd.fill(null);
+        resetCrowd();
         renderCount();
         break;
       case 'viewers':
         viewers = msg.viewers;
         renderCount();
         break;
+      case 'present': addMember(msg.member); break;
+      case 'gift': addItem(msg.entry); thank(msg.entry); break;
       case 'settings': applySettings(msg.settings); break;
       case 'showing': renderComments(msg.showing); break;
     }

@@ -19,11 +19,11 @@ const TEXTS = [
 
 const JOINERS = ['taman.phat', 'dieuhien', 'minhtue99', 'thienphuc', 'anlac', 'baongoc', 'huecuong', 'thanhtinh'];
 
-export function startDemo(onComment, onMember = () => {}, intervalMs = 1500) {
+export function startDemo(onComment, onMember = () => {}, onActivity = () => {}, intervalMs = 1500) {
   let n = 0;
   const joinTimer = setInterval(() => {
     const username = Math.random() < 0.5 ? JOINERS[Math.floor(Math.random() * JOINERS.length)] : `phattu${Math.floor(Math.random() * 900 + 100)}`;
-    onMember({ username, nickname: username, avatar: null, at: Date.now() });
+    onMember({ username, nickname: username, avatar: null, at: Date.now(), demo: true });
   }, 2300);
   const timer = setInterval(() => {
     const username = USERS[Math.floor(Math.random() * USERS.length)];
@@ -34,9 +34,16 @@ export function startDemo(onComment, onMember = () => {}, intervalMs = 1500) {
       avatar: null,
       text: TEXTS[Math.floor(Math.random() * TEXTS.length)],
       at: Date.now(),
+      demo: true,
     });
   }, intervalMs);
+  const likeTimer = setInterval(() => {
+    const username = USERS[Math.floor(Math.random() * USERS.length)];
+    const kind = Math.random() < 0.1 ? 'gift' : 'like';
+    onActivity({ username, nickname: username, avatar: null, kind, count: kind === 'gift' ? 1 : 15, demo: true });
+  }, 900);
   return () => {
+    clearInterval(likeTimer);
     clearInterval(timer);
     clearInterval(joinTimer);
   };
