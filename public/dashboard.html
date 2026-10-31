@@ -52,7 +52,8 @@
       <div class="panel-head">
         <h2>🎁 Quà nhận được</h2>
         <div class="buttons filter">
-          <button type="button" id="giftToday" class="small on">Hôm nay</button>
+          <button type="button" id="giftSession" class="small on">Phiên này</button>
+          <button type="button" id="giftToday" class="small">Hôm nay</button>
           <button type="button" id="giftAll" class="small">Tất cả</button>
         </div>
       </div>
@@ -86,9 +87,10 @@
             <button type="button" id="clearBtn" class="small">Xóa màn hình</button>
             <button type="button" id="clearMembersBtn" class="small">Xóa DS Phật tử</button>
             <button type="button" id="reloadBtn" class="small" title="Tải lại overlay đang chạy trong OBS / LIVE Studio">↻ Tải lại overlay</button>
+            <button type="button" id="previewBtn" class="small" title="Xem trước chạy cả một overlay nữa trong Chrome, khá nặng: tắt khi đang LIVE">👁 Xem trước</button>
           </div>
         </div>
-        <div class="preview"><iframe title="Xem trước overlay"></iframe></div>
+        <div class="preview"><iframe title="Xem trước overlay"></iframe><p class="preview-off">Đã tắt xem trước để đỡ tốn máy. Bấm 👁 Xem trước để bật.</p></div>
         <div class="url-row">
           <code id="overlayUrl"></code>
           <button type="button" id="copyBtn" class="small">Sao chép URL cho OBS</button>

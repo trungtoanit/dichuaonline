@@ -60,7 +60,13 @@ export const detectTimesheet = (text) => clean(text).includes(' cham cong ');
 // "Yêu sếp" -> được tăng lương và thăng chức
 export function detectLoveBoss(text) {
   const t = clean(text);
-  return /\b(yeu|iu|thuong|love) (sep|ong chu)\b/.test(t) && !/\b(khong|ko|k|hong|chua|het) (yeu|iu|thuong|love) (sep|ong chu)\b/.test(t);
+  return /\b(yeu|thuong|love) (sep|ong chu)\b/.test(t) && !/\b(khong|ko|k|hong|chua|het) (yeu|thuong|love) (sep|ong chu)\b/.test(t);
+}
+
+// "Iu sếp" (viết kiểu teen) -> cho làm Thư ký (khác "yêu sếp" là thăng chức + tăng lương)
+export function detectIuBoss(text) {
+  const t = clean(text);
+  return /\biu (sep|ong chu)\b/.test(t) && !/\b(khong|ko|k|hong|chua|het) iu (sep|ong chu)\b/.test(t);
 }
 
 // Nhắc "chủ tịch" -> cho ra làm bảo vệ
@@ -112,7 +118,9 @@ export function detectHateBoss(text) {
 export const detectGuardWord = (text) => clean(text).includes(' bao ve ');
 
 // "Đi nhậu" -> cho làm lao công
-export const detectDrinking = (text) => /\b(di nhau|nhau nhet|lai rai|nhau khong|nhau ko|nhau di)\b/.test(clean(text));
+// Có chữ "nhậu" (đúng dấu, để không nhầm "nhau" như "gặp nhau"), hoặc viết không dấu kiểu "di nhau", "lai rai"
+export const detectDrinking = (text) => /nhậu/.test(String(text).toLowerCase().normalize('NFC'))
+  || /\b(di nhau|nhau nhet|lai rai|nhau khong|nhau ko|nhau di)\b/.test(clean(text));
 
 // "Hút máu" -> cho ra làm bảo vệ
 export const detectBloodsucker = (text) => /\bhut mau\b/.test(clean(text));
@@ -139,7 +147,7 @@ export function detectDiligent(text) {
 // Muốn làm vợ sếp -> cho làm thư ký
 export const detectBossWife = (text) => /\b(vo|bo) (sep|ong chu)\b/.test(clean(text)) && /vợ|\bvo (sep|ong chu)\b/.test(String(text).toLowerCase().normalize('NFC'));
 
-// "Cố gắng" -> tăng lương 500k
+// "Cố gắng" -> tăng lương ngẫu nhiên 1–3 triệu
 export function detectEffort(text) {
   const t = clean(text);
   return /\bco gang\b/.test(t) && !/\b(khong|ko|k|hong|chang|chua) (chiu )?co gang\b/.test(t);
@@ -160,3 +168,31 @@ export function detectLazy(text) {
 
 // Xin nghỉ thai sản / đi đẻ
 export const detectMaternity = (text) => /\b(thai san|nghi de|di de|sap de|xin de|chuyen da)\b/.test(clean(text));
+
+// "Ứng lương" -> cho đi làm Đòi nợ (đi đòi nợ khách hàng cho sếp)
+export const detectAdvance = (text) => /\bung (truoc )?luong\b/.test(clean(text));
+
+// "Giảm lương" -> trừ 30% lương
+export const detectPayCut = (text) => /\bgiam luong\b/.test(clean(text));
+
+// Có chữ "nghỉ" (đúng dấu, để không nhầm "nghĩ"/"nghi ngờ") hoặc "nghi viec" -> đuổi ra khỏi cổng (xuống ca).
+// "Nghỉ đẻ / thai sản" do luật thai sản xử lý trước.
+export const detectQuit = (text) => /nghỉ/.test(String(text).toLowerCase().normalize('NFC')) || /\bnghi viec\b/.test(clean(text));
+
+// Chào sếp -> sếp chào lại (hiện bảng chào)
+export function detectGreetBoss(text) {
+  const t = clean(text);
+  return /\b(chao|hello|helo|hi|hai|xin chao) (sep|ong chu|anh toan|sep toan)\b/.test(t);
+}
+
+// "Làm việc khác" -> chuyển sang đứng máy khác
+export const detectSwitchMachine = (text) => /\b(lam|cho lam|doi|chuyen) (viec|cong viec|may) khac\b/.test(clean(text));
+
+// Chửi tục ("đéo", "đếch", "éo") -> đuổi ra khỏi cổng. Chỉ bắt chữ có dấu để không nhầm "đeo", "đèo".
+export const detectCurse = (text) => /(^|[^\p{L}])(đéo|đếch|éo)(?![\p{L}])/u.test(String(text).toLowerCase().normalize('NFC'));
+
+// Đòi "trả lương" -> cho đi làm Bảo vệ ("chưa trả lương" vẫn là luật đuổi việc, xử lý trước)
+export const detectPayDemand = (text) => /\btra (tien )?luong\b/.test(clean(text));
+
+// "Giảm giờ làm" -> trừ lương 1–2 triệu
+export const detectLessHours = (text) => /\b(giam|bot|it) gio lam\b/.test(clean(text));

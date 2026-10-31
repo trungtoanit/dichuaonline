@@ -170,6 +170,9 @@
   .wk.job-lao-cong .hat { background: linear-gradient(180deg, #4ade80, #15803d); }
   .wk.job-lao-cong .hat::after { background: #166534; }
   .wk.job-thu-ky .hat, .wk.job-ke-toan .hat { display: none; }
+  .wk.job-doi-no .hat { background: linear-gradient(180deg, #374151, #111827); }
+  .wk.job-doi-no .hat::after { background: #000; }
+  .title.job.doi-no { background: #7f1d1d; }
   .wk.sweeping .arm.r { animation: sweep .45s ease-in-out infinite alternate; }
   @keyframes sweep { from { transform: rotate(-22deg); } to { transform: rotate(18deg); } }
   .title.lead { background: linear-gradient(90deg, #b45309, #facc15, #b45309); color: #1f2937; }
@@ -312,6 +315,12 @@
   #greetBoard .t1 { font: 800 36px/1.2 "Be Vietnam Pro", sans-serif; color: #e00000; }
   #greetBoard .t2 { font: 800 60px/1.15 "Be Vietnam Pro", sans-serif; color: #b45309; margin: 6px 0; overflow-wrap: anywhere; }
   #greetBoard .t3 { font: 700 28px/1.3 "Be Vietnam Pro", sans-serif; color: #1f2937; }
+  /* Chào mừng Giám đốc mới (tặng từ 20 xu): nền vàng kim, viền sáng rực */
+  #greetBoard.director { background: linear-gradient(180deg, #fde68a, #fffbeb 55%, #fde68a); border-color: #b45309; animation: directorGlow 1.2s ease-in-out infinite alternate; }
+  #greetBoard.director .t1 { font-size: 40px; color: #b91c1c; }
+  #greetBoard.director .t2 { font-size: 72px; color: #92400e; }
+  #greetBoard.director .av { width: 180px; height: 180px; border-color: #b45309; box-shadow: 0 0 0 10px rgba(250, 204, 21, .6); }
+  @keyframes directorGlow { from { box-shadow: 0 0 30px 6px rgba(250, 204, 21, .6), 0 20px 60px rgba(0, 0, 0, .5); } to { box-shadow: 0 0 70px 22px rgba(250, 204, 21, .95), 0 20px 60px rgba(0, 0, 0, .5); } }
   #auditWelcome img { height: 120px; max-width: 360px; object-fit: contain; margin-bottom: 10px; }
   #auditWelcome .t1 { font: 800 34px/1.25 "Be Vietnam Pro", sans-serif; color: #e00000; letter-spacing: 1px; }
   #auditWelcome .t2 { font: 800 64px/1.15 "Be Vietnam Pro", sans-serif; color: var(--team, #0ea5e9); margin: 6px 0; }
@@ -392,7 +401,7 @@
       <h4>🌹 HOA HỒNG ĐỔI CHỨC 🌹</h4>
       <div class="row"><svg class="ic" viewBox="0 0 60 60" aria-hidden="true"><path d="M30 30 L30 56" stroke="#16a34a" stroke-width="4" stroke-linecap="round"/><path d="M30 44 C20 38 13 42 12 48 C20 50 26 48 30 44Z" fill="#22c55e"/><path d="M30 40 C40 34 47 38 48 44 C40 46 34 44 30 40Z" fill="#4ade80"/><path d="M17 16 C17 6 43 6 43 16 C43 28 36 33 30 33 C24 33 17 28 17 16Z" fill="#f472b6"/><path d="M17 16 C22 12 28 14 30 20 C26 26 20 26 17 16Z" fill="#ec4899"/><path d="M43 16 C38 12 32 14 30 20 C34 26 40 26 43 16Z" fill="#db2777"/><path d="M24 10 C27 6 33 6 36 10 C33 13 27 13 24 10Z" fill="#fbcfe8"/></svg><div><small>Hoa hồng · 1 xu</small><b class="up">💰 TĂNG LƯƠNG</b></div></div>
       <div class="row big"><svg class="ic" viewBox="0 0 60 60" aria-hidden="true"><path d="M14 46 C6 46 3 52 4 56 C12 57 18 53 20 48Z" fill="#16a34a"/><path d="M46 46 C54 46 57 52 56 56 C48 57 42 53 40 48Z" fill="#22c55e"/><circle cx="30" cy="30" r="24" fill="#ef4444"/><path d="M8 30 C8 16 18 8 30 8 C22 14 18 22 18 30Z" fill="#f87171"/><path d="M52 30 C52 44 42 52 30 52 C38 46 42 38 42 30Z" fill="#dc2626"/><circle cx="30" cy="30" r="16" fill="#f87171"/><path d="M16 32 C18 20 26 16 34 18 C26 20 22 26 22 34Z" fill="#fca5a5"/><circle cx="30" cy="30" r="9" fill="#ef4444"/><path d="M26 30 C26 25 34 25 34 30 C34 34 29 35 28 32 C27 30 30 28 31 30" fill="none" stroke="#b91c1c" stroke-width="2" stroke-linecap="round"/></svg><div><small>Rosa · 10 xu</small><b class="star">👑 THĂNG CHỨC</b></div></div>
-      <div class="more">🎁 Quà khác cũng tăng lương<br>quà càng to <b>lương càng cao</b> 💸</div>
+      <div class="more">🎁 Quà <b>20 xu</b> → 👑 <b>GIÁM ĐỐC</b><br>quà khác cũng tăng lương 💸</div>
     </div>
     <div id="honor" class="empty"><h3>🏆 BẢNG VINH DANH</h3><ol id="honorList"></ol></div>
   </div>
@@ -403,6 +412,7 @@
   import { createMusicPlayer } from '/music-player.js';
 
   const $ = (id) => document.getElementById(id);
+  let sceneReady = false; // đã dựng cảnh lần đầu chưa (máy chủ chạy lại thì không dựng lại)
   if (new URLSearchParams(location.search).has('preview')) document.body.classList.add('preview');
   if (new URLSearchParams(location.search).has('vinh-danh')) document.body.classList.add('vinh-danh');
 
@@ -815,7 +825,19 @@
       <g class="arm r"><rect x="75" y="28" width="15" height="52" rx="7" fill="${coat}"/><circle cx="82" cy="84" r="7" fill="#e8b48a"/>${item}</g>`;
   const SECRETARY = office('#db2777', '<rect x="70" y="66" width="24" height="30" rx="2" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><path d="M75 74 H89 M75 80 H89 M75 86 H85" stroke="#64748b" stroke-width="2"/>');
   const ACCOUNTANT = office('#0f766e', '<rect x="68" y="68" width="28" height="22" rx="3" fill="#334155"/><rect x="71" y="71" width="22" height="6" fill="#a7f3d0"/><path d="M73 81 h4 M80 81 h4 M87 81 h4 M73 86 h4 M80 86 h4 M87 86 h4" stroke="#e2e8f0" stroke-width="3"/>');
-  const JOB_BODY = { 'bao-ve': 'guard', 'lao-cong': 'janitor', 'thu-ky': 'secretary', 'ke-toan': 'accountant' };
+  // Đòi nợ: áo khoác da đen, dây chuyền vàng, cầm sổ nợ đỏ
+  const COLLECTOR = `
+      <rect x="49" y="0" width="12" height="12" fill="#e8b48a"/>
+      <g class="leg l"><rect x="38" y="94" width="17" height="44" rx="4" fill="#1e3a8a"/><rect x="34" y="134" width="24" height="12" rx="5" fill="#000"/></g>
+      <g class="leg r"><rect x="56" y="94" width="17" height="44" rx="4" fill="#1e3a8a"/><rect x="54" y="134" width="24" height="12" rx="5" fill="#000"/></g>
+      <path d="M28 18 Q55 6 82 18 L86 98 H24Z" fill="#111827"/>
+      <path d="M44 14 L55 46 L66 14Z" fill="#f8fafc"/>
+      <path d="M44 16 Q55 40 66 16" stroke="#facc15" stroke-width="3" fill="none"/>
+      <path d="M55 46 V96" stroke="#374151" stroke-width="3"/>
+      <g class="arm l"><rect x="20" y="28" width="15" height="52" rx="7" fill="#111827"/><circle cx="27" cy="84" r="7" fill="#e8b48a"/></g>
+      <g class="arm r"><rect x="75" y="28" width="15" height="52" rx="7" fill="#111827"/><circle cx="82" cy="84" r="7" fill="#e8b48a"/>
+        <rect x="68" y="66" width="26" height="32" rx="2" fill="#b91c1c" stroke="#7f1d1d" stroke-width="2"/><text x="81" y="86" text-anchor="middle" font-size="10" font-weight="800" fill="#fde68a" font-family="sans-serif">NỢ</text></g>`;
+  const JOB_BODY = { 'bao-ve': 'guard', 'lao-cong': 'janitor', 'thu-ky': 'secretary', 'ke-toan': 'accountant', 'doi-no': 'collector' };
 
   function bodySvg(shirt) {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -825,8 +847,8 @@
       svg.innerHTML = SUIT;
       return svg;
     }
-    if (['guard', 'janitor', 'secretary', 'accountant'].includes(shirt)) {
-      svg.innerHTML = { guard: GUARD, janitor: JANITOR, secretary: SECRETARY, accountant: ACCOUNTANT }[shirt];
+    if (['guard', 'janitor', 'secretary', 'accountant', 'collector'].includes(shirt)) {
+      svg.innerHTML = { guard: GUARD, janitor: JANITOR, secretary: SECRETARY, accountant: ACCOUNTANT, collector: COLLECTOR }[shirt];
       return svg;
     }
     if (OUTFIT_BY_LEVEL[shirt]) {
@@ -976,7 +998,7 @@
     if (i < 0) {
       crew.forEach((c, j) => {
         // Người cấp thấp và im lặng lâu nhất xuống ca trước
-        if (speakingNow.has(c.person.username)) return;
+        if (!c || speakingNow.has(c.person.username)) return; // chỗ trống dành cho trưởng máy thì bỏ qua
         if (leadOf(c.person.username)) return; // trưởng máy không nhường chỗ
         // Ai im lặng lâu nhất xuống ca trước; chức cao được giữ chỗ thêm 1 phút mỗi bậc, nhân viên công ty nhường trước
         const keep = (w) => w.lastActive + (w.person.staff ? -10 * 60000 : levelOf(w.person.username) * 60000);
@@ -1018,7 +1040,7 @@
   }
 
   // ---------- Bảo vệ / Lao công (sếp điều chuyển từ dashboard) ----------
-  const JOB_TITLE = { 'bao-ve': '🛡 Bảo vệ', 'lao-cong': '🧹 Lao công', 'thu-ky': '📝 Thư ký', 'ke-toan': '🧮 Kế toán' };
+  const JOB_TITLE = { 'bao-ve': '🛡 Bảo vệ', 'lao-cong': '🧹 Lao công', 'thu-ky': '📝 Thư ký', 'ke-toan': '🧮 Kế toán', 'doi-no': '💼 Đòi nợ' };
   const OFFICE_JOB = new Set(['thu-ky', 'ke-toan']); // được lên làm (không phải bị điều xuống)
   let jobs = {};
   const jobOf = (username) => jobs[username] ?? null;
@@ -1045,7 +1067,7 @@
     }
     const el = document.createElement('div');
     el.className = `wk special job-${job}`;
-    const title = Object.assign(document.createElement('div'), { className: 'title job', textContent: JOB_TITLE[job] });
+    const title = Object.assign(document.createElement('div'), { className: `title job ${job}`, textContent: JOB_TITLE[job] });
     el.append(
       Object.assign(document.createElement('div'), { className: 'hat' }),
       avatarEl(person),
@@ -1138,6 +1160,12 @@
     }
     removeSpecial(member.username);
     const w = assign(member);
+    if (job === 'doi-no') {
+      showBoard(member, `💼 ${sep} vừa giao việc cho`, 'xin ứng lương hả? Đi đòi nợ khách hàng cho sếp đã! 😎💸');
+      announce(`💼 ${name} xin ứng lương, ${sep} cho đi đòi nợ khách hàng trước!`);
+      if (w) sayOnce(w, 'Dạ em đi đòi nợ khách cho sếp liền 💼💪');
+      return;
+    }
     const box = $('greetBoard');
     const av = member.avatar
       ? Object.assign(document.createElement('img'), { src: member.avatar, alt: '', referrerPolicy: 'no-referrer' })
@@ -1149,6 +1177,7 @@
       Object.assign(document.createElement('div'), { className: 't2', textContent: name }),
       Object.assign(document.createElement('div'), { className: 't3', textContent: up ? `lên làm ${JOB_TITLE[job]}${reason === 'khen sếp' ? ' vì khen sếp đẹp trai 😎' : reason === 'vợ sếp' ? ' vì muốn làm vợ sếp 😳' : ''}! 🎉` : why ? `${why} nên xuống làm ${JOB_TITLE[job]} 😆` : `xuống làm ${JOB_TITLE[job]} 😆` }),
     );
+    box.classList.remove('director');
     box.classList.add('show');
     clearTimeout(greetTimer);
     greetTimer = setTimeout(() => box.classList.remove('show'), 3500);
@@ -1175,6 +1204,7 @@
       Object.assign(document.createElement('div'), { className: 't2', textContent: name }),
       Object.assign(document.createElement('div'), { className: 't3', textContent: t3 }),
     );
+    box.classList.remove('director');
     box.classList.add('show');
     clearTimeout(greetTimer);
     greetTimer = setTimeout(() => box.classList.remove('show'), 3500);
@@ -1234,6 +1264,45 @@
       const i = crew.findIndex((c) => c?.person.username === member.username);
       if (i >= 0) clockOut(i);
     }, 2000);
+  }
+
+  // Chia sẻ phiên LIVE: cảm ơn bằng pháo hoa
+  function onShareThanks({ member, boss: bossName }) {
+    const sep = `Sếp ${bossName || ownerName}`;
+    const name = member.nickname || member.username;
+    showBoard(member, `🔗 ${sep} cảm ơn đã chia sẻ LIVE`, 'Cảm ơn em đã chia sẻ phiên LIVE của Tuấn Tú! 🎆❤️');
+    announce(`🎆 Cảm ơn ${name} đã chia sẻ phiên LIVE!`);
+    for (let k = 0; k < 2; k++) setTimeout(() => fireworks(6), k * 1000);
+    const w = assign(member);
+    if (w) sayOnce(w, 'Em share rồi nè sếp 🥰');
+  }
+
+  // Người xem chào sếp: sếp chào lại
+  function onBossHello({ member, boss: bossName }) {
+    const sep = `Sếp ${bossName || ownerName}`;
+    const name = member.nickname || member.username;
+    showBoard(member, `👋 ${sep} chào lại`, `Chào ${name}! Chúc em làm việc vui vẻ nha 😄`);
+    announce(`👋 ${sep} chào ${name}!`);
+    fireworks(2);
+    const w = assign(member);
+    if (w) sayOnce(w, 'Dạ em chào sếp ạ 🥰');
+  }
+
+  // Xin nghỉ việc: đuổi ra khỏi cổng — đi ra máy chấm công rồi ra cửa (xuống ca)
+  function onKickout({ member, reason, boss: bossName }) {
+    const sep = `Sếp ${bossName || ownerName}`;
+    const name = member.nickname || member.username;
+    const curse = reason === 'chửi tục';
+    showBoard(member, `🚪 ${sep} đuổi ra khỏi cổng`, curse ? 'chửi tục hả? Nhà máy không chứa, mời ra cổng luôn! 😤' : 'xin nghỉ việc hả? Mời ra cổng luôn, khỏi chấm công! 👋😤');
+    announce(`🚪 ${name} ${curse ? 'chửi tục' : 'xin nghỉ việc'}, ${sep} đuổi ra khỏi cổng luôn!`);
+    removeSpecial(member.username);
+    const w = assign(member);
+    if (!w) return;
+    sayOnce(w, curse ? 'Em xin lỗi sếp, em lỡ miệng 😭' : 'Ơ sếp ơi em nói đùa thôi mà 😭');
+    setTimeout(() => {
+      const i = crew.findIndex((c) => c?.person.username === member.username);
+      if (i >= 0) clockOut(i);
+    }, 1800);
   }
 
   // Bị đuổi việc: cho xuống làm Công nhân, vẫn ở lại xưởng
@@ -1828,6 +1897,7 @@
       Object.assign(document.createElement('div'), { className: 't2 group', textContent: shown + more }),
       Object.assign(document.createElement('div'), { className: 't3', textContent: 'đến với Nhà máy Tuấn Tú Packaging! ❤️' }),
     );
+    box.classList.remove('director');
     box.classList.add('show');
     clearTimeout(greetTimer);
     greetTimer = setTimeout(() => box.classList.remove('show'), 2800);
@@ -1865,6 +1935,7 @@
       Object.assign(document.createElement('div'), { className: 't2', textContent: name }),
       Object.assign(document.createElement('div'), { className: 't3', textContent: cut ? `-${payText(cut)} vì nói ${reason || 'linh tinh'}, còn ${payText(amount)}/tháng 😅` : lazy ? `còn ${payText(amount)}/tháng vì làm biếng 😴` : `${raised ? 'lên' : 'thành'} ${payText(amount)}/tháng${reason === 'chăm chỉ' ? ' vì chăm chỉ 💪' : reason === 'cố gắng' ? ' vì cố gắng 💪' : reason === 'donate' ? ' vì tặng 🎁 cho sếp' : ''}! ${max ? '👑 Mức cao nhất!' : raised ? '🎉' : ''}` }),
     );
+    box.classList.remove('director');
     box.classList.add('show');
     clearTimeout(greetTimer);
     greetTimer = setTimeout(() => box.classList.remove('show'), 3500);
@@ -1884,6 +1955,7 @@
 
   // Sếp Toán thăng / hạ chức từ dashboard: bảng thông báo lớn + pháo hoa + người đó đổi đồng phục
   function bossPromote({ entry, member, demoted, reason, boss: bossName }) {
+    if (reason === 'giám đốc') return welcomeDirector({ entry, member, boss: bossName });
     const name = member.nickname || member.username;
     const sep = `Sếp ${bossName || ownerName}`;
     const why = { 'tiêu cực': ' vì nói tiêu cực 😤', 'chủ tịch': ' vì đòi lên chủ tịch 😤', 'yêu sếp': ' vì yêu sếp ❤️', 'donate': ' vì tặng 🎁 cho sếp' }[reason] ?? '';
@@ -1900,6 +1972,7 @@
       Object.assign(document.createElement('div'), { className: 't2', textContent: name }),
       Object.assign(document.createElement('div'), { className: 't3', textContent: `${demoted ? 'xuống làm' : 'lên làm'} ${entry.title}${why || (demoted ? '' : '! 🎉')}` }),
     );
+    box.classList.remove('director');
     box.classList.add('show');
     clearTimeout(greetTimer);
     greetTimer = setTimeout(() => box.classList.remove('show'), 3500);
@@ -1938,6 +2011,7 @@
       Object.assign(document.createElement('div'), { className: 't2', textContent: name }),
       Object.assign(document.createElement('div'), { className: 't3', textContent: 'đến với Nhà máy Tuấn Tú Packaging! ❤️' }),
     );
+    box.classList.remove('director');
     box.classList.add('show');
     clearTimeout(greetTimer);
     greetTimer = setTimeout(() => box.classList.remove('show'), 2800);
@@ -1966,6 +2040,7 @@
       Object.assign(document.createElement('div'), { className: 't2', textContent: team }),
       Object.assign(document.createElement('div'), { className: 't3', textContent: 'đến thăm & audit Nhà máy Tuấn Tú Packaging 🤝' }),
     );
+    box.classList.remove('director');
     box.classList.add('show');
     fireworks(6);
     setTimeout(() => box.classList.remove('show'), 6000);
@@ -2177,6 +2252,8 @@
   let last = performance.now();
   let lastIdleCheck = 0;
   function tick(now) {
+    // 30 khung hình/giây là đủ (LIVE phát 30fps): bỏ bớt nửa số khung để đỡ tốn CPU/GPU
+    if (now - last < 30) return requestAnimationFrame(tick);
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
     updateCamera(now, dt);
@@ -2232,6 +2309,48 @@
   let welcoming = false;
   // Người xem mới vào phòng = nhân viên mới tới công ty: pháo hoa + lời chào
   let lastFireworks = 0;
+  // Tặng từ 20 xu: chào mừng Giám đốc mới, pháo hoa dồn dập + mưa tiền, bảng ở lâu hơn
+  function welcomeDirector({ entry, member, boss: bossName }) {
+    const name = member.nickname || member.username;
+    const sep = `Sếp ${bossName || ownerName}`;
+    const box = $('greetBoard');
+    const av = member.avatar
+      ? Object.assign(document.createElement('img'), { src: member.avatar, alt: '', referrerPolicy: 'no-referrer' })
+      : Object.assign(document.createElement('div'), { textContent: initials(name) });
+    av.className = 'av';
+    box.replaceChildren(
+      av,
+      Object.assign(document.createElement('div'), { className: 't1', textContent: `🎉 ${sep} chào mừng GIÁM ĐỐC mới 🎉` }),
+      Object.assign(document.createElement('div'), { className: 't2', textContent: name }),
+      Object.assign(document.createElement('div'), { className: 't3', textContent: `👑 lên làm ${entry.title} vì tặng 🎁 cho sếp! 👑` }),
+    );
+    box.classList.add('show', 'director');
+    clearTimeout(greetTimer);
+    greetTimer = setTimeout(() => box.classList.remove('show', 'director'), 6000);
+    announce(`🎉 ${sep} chào mừng ${name} lên làm ${entry.title} vì tặng quà cho sếp!`);
+    // 4 đợt pháo hoa liên tiếp + mưa tiền
+    for (let k = 0; k < 4; k++) setTimeout(() => fireworks(8), k * 1200);
+    moneyRain(40);
+    const w = assign(member);
+    if (w) {
+      dress(w.el, member.username);
+      w.el.classList.add('promoted');
+      confetti(w.el);
+      setTimeout(() => confetti(w.el), 1500);
+      setTimeout(() => w.el.classList.remove('promoted'), 6000);
+      sayOnce(w, 'Cảm ơn sếp! Em sẽ làm Giám đốc thật tốt 👑🥰');
+    }
+  }
+
+  // Xem thử trên ?preview: thuGiamDoc('Tên')
+  if (new URLSearchParams(location.search).has('preview')) {
+    window.thuDoiNo = (name = 'Minh An') => {
+      const member = { username: `thu:${name}`, nickname: name };
+      onJob({ member, job: 'doi-no', jobs: { ...jobs, [member.username]: 'doi-no' }, reason: 'ứng lương' });
+    };
+    window.thuGiamDoc = (name = 'Minh An') => welcomeDirector({ entry: { title: 'Giám đốc nhà máy' }, member: { username: `thu:${name}`, nickname: name } });
+  }
+
   function fireworks(bursts = 5) {
     const colors = ['#facc15', '#ef4444', '#22c55e', '#38bdf8', '#f472b6', '#fb923c', '#a78bfa'];
     for (let b = 0; b < bursts; b++) {
@@ -2347,13 +2466,17 @@
         machineWish = msg.machineWish ?? {};
         for (const [name, e] of Object.entries(msg.ranks ?? {})) rankMap.set(name, e);
         renderHonor(msg.top);
-        clearCrew();
-        {
-          // Ưu tiên người vừa bình luận, còn chỗ thì thêm người mới vào phòng
-          const people = new Map();
-          for (const c of (msg.feed ?? []).filter((c) => !c.old && c.filtered !== 'Người dùng bị chặn').reverse()) if (!people.has(c.username)) people.set(c.username, msg.members.find((m) => m.username === c.username) ?? c);
-          for (const m of [...msg.members].reverse()) if (!people.has(m.username)) people.set(m.username, m);
-          [...people.values()].slice(0, STATIONS.length).reverse().forEach((m) => assign(m));
+        // Máy chủ khởi động lại giữa buổi LIVE: giữ nguyên cảnh đang chạy, chỉ cập nhật dữ liệu (không dựng lại từ đầu)
+        if (!sceneReady) {
+          sceneReady = true;
+          clearCrew();
+          {
+            // Ưu tiên người vừa bình luận, còn chỗ thì thêm người mới vào phòng
+            const people = new Map();
+            for (const c of (msg.feed ?? []).filter((c) => !c.old && c.filtered !== 'Người dùng bị chặn').reverse()) if (!people.has(c.username)) people.set(c.username, msg.members.find((m) => m.username === c.username) ?? c);
+            for (const m of [...msg.members].reverse()) if (!people.has(m.username)) people.set(m.username, m);
+            [...people.values()].slice(0, STATIONS.length).reverse().forEach((m) => assign(m));
+          }
         }
         total = msg.members.length;
         viewers = msg.viewers;
@@ -2396,6 +2519,9 @@
       // Ai bình luận cũng vào xưởng ngay, kể cả khi bình luận còn đang chờ tới lượt hiện
       case 'present': assign(msg.member); break;
       case 'maternity': onMaternity(msg); break;
+      case 'kickout': onKickout(msg); break;
+      case 'bossHello': onBossHello(msg); break;
+      case 'shareThanks': onShareThanks(msg); break;
       case 'memberUpdate': {
         // Đổi tên hiển thị từ dashboard: cập nhật ngay trên người đang đứng máy
         const w = crew.find((c) => c?.person.username === msg.member.username);

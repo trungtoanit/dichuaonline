@@ -48,7 +48,7 @@ test('chấm công / yêu sếp', () => {
   assert.equal(detectTimesheet('sếp ơi chấm công chưa'), true);
   assert.equal(detectTimesheet('chăm chỉ làm việc'), false);
   assert.equal(detectLoveBoss('em yêu sếp Toán nhất'), true);
-  assert.equal(detectLoveBoss('iu sep qua'), true);
+  assert.equal(detectLoveBoss('iu sep qua'), false); // "iu sếp" giờ là luật thư ký riêng
   assert.equal(detectLoveBoss('em không yêu sếp đâu'), false);
 });
 
@@ -133,6 +133,9 @@ test('đi nhậu', () => {
   assert.equal(detectDrinking('tối nay đi nhậu không anh em'), true);
   assert.equal(detectDrinking('di nhau'), true);
   assert.equal(detectDrinking('đi làm thôi'), false);
+  assert.equal(detectDrinking('Nhậu không sếp'), true);
+  assert.equal(detectDrinking('tối nay nhậu'), true);
+  assert.equal(detectDrinking('gặp nhau nhé'), false);
 });
 
 import { detectBloodsucker } from '../src/promote.js';
@@ -216,4 +219,85 @@ test('nghỉ thai sản', () => {
   assert.equal(detectMaternity('chuyển dạ rồi'), true);
   assert.equal(detectMaternity('đẹp trai quá'), false);
   assert.equal(detectMaternity('đi đâu đó'), false);
+});
+
+import { detectAdvance } from '../src/promote.js';
+
+test('ứng lương', () => {
+  assert.equal(detectAdvance('Em hết tiền rồi ứng lương sếp ơi'), true);
+  assert.equal(detectAdvance('cho em ung luong'), true);
+  assert.equal(detectAdvance('ứng trước lương nha sếp'), true);
+  assert.equal(detectAdvance('ủng hộ sếp'), false);
+  assert.equal(detectAdvance('tăng lương'), false);
+});
+
+import { detectPayCut } from '../src/promote.js';
+
+test('giảm lương', () => {
+  assert.equal(detectPayCut('sếp giảm lương nó đi'), true);
+  assert.equal(detectPayCut('giam luong'), true);
+  assert.equal(detectPayCut('tăng lương'), false);
+});
+
+import { detectQuit } from '../src/promote.js';
+
+test('nghỉ việc', () => {
+  assert.equal(detectQuit('em xin nghỉ việc'), true);
+  assert.equal(detectQuit('nghi viec luon'), true);
+  assert.equal(detectQuit('cho em nghỉ'), true);
+  assert.equal(detectQuit('Nghỉ thôi'), true);
+  assert.equal(detectQuit('em nghĩ là được'), false);
+  assert.equal(detectQuit('nghi ngờ quá'), false);
+});
+
+import { detectIuBoss } from '../src/promote.js';
+
+test('iu sếp', () => {
+  assert.equal(detectIuBoss('iu sếp nhiều'), true);
+  assert.equal(detectIuBoss('Iuuu sếppp'), true);
+  assert.equal(detectIuBoss('yêu sếp'), false);
+  assert.equal(detectIuBoss('ko iu sếp'), false);
+});
+
+import { detectGreetBoss } from '../src/promote.js';
+
+test('chào sếp', () => {
+  assert.equal(detectGreetBoss('em chào sếp Toán'), true);
+  assert.equal(detectGreetBoss('Hello sếp'), true);
+  assert.equal(detectGreetBoss('chào mọi người'), false);
+});
+
+import { detectSwitchMachine } from '../src/promote.js';
+
+test('làm việc khác', () => {
+  assert.equal(detectSwitchMachine('cho em làm việc khác đi sếp'), true);
+  assert.equal(detectSwitchMachine('đổi máy khác'), true);
+  assert.equal(detectSwitchMachine('làm việc chăm chỉ'), false);
+});
+
+import { detectCurse } from '../src/promote.js';
+
+test('chửi tục', () => {
+  assert.equal(detectCurse('đéo thích'), true);
+  assert.equal(detectCurse('Đếch quan tâm'), true);
+  assert.equal(detectCurse('éo biết'), true);
+  assert.equal(detectCurse('đeo khẩu trang'), false);
+  assert.equal(detectCurse('qua đèo'), false);
+  assert.equal(detectCurse('kéo dài'), false);
+});
+
+import { detectPayDemand } from '../src/promote.js';
+
+test('trả lương', () => {
+  assert.equal(detectPayDemand('sếp trả lương đi'), true);
+  assert.equal(detectPayDemand('tra luong'), true);
+  assert.equal(detectPayDemand('tăng lương'), false);
+});
+
+import { detectLessHours } from '../src/promote.js';
+
+test('giảm giờ làm', () => {
+  assert.equal(detectLessHours('sếp giảm giờ làm đi'), true);
+  assert.equal(detectLessHours('bớt giờ làm'), true);
+  assert.equal(detectLessHours('tăng giờ làm'), false);
 });

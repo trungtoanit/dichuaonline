@@ -2,7 +2,7 @@ import { connectWS, initials } from '/ws-client.js';
 
 const $ = (id) => document.getElementById(id);
 const fmt = new Intl.NumberFormat('vi-VN');
-const FEED_SIZE = 200;
+const FEED_SIZE = 5; // chỉ giữ 5 bình luận mới nhất cho gọn và nhẹ
 const RANK_TITLES = ['Học việc', 'Công nhân', 'Thợ đứng máy', 'Tổ trưởng', 'Trưởng ca', 'Quản đốc', 'Phó giám đốc', 'Giám đốc nhà máy'];
 const forms = [$('displayForm'), $('filterForm'), $('auditForm')];
 let settings = null;
@@ -124,6 +124,12 @@ function setStatus(s) {
   $('statusMsg').textContent = s.message;
   $('demoBtn').setAttribute('aria-pressed', String(demo));
   tickLiveTime();
+  // Phiên LIVE mới: bảng quà "Phiên này" tính lại từ đầu
+  if (live && s.liveSince && s.liveSince !== sessionStart) {
+    sessionStart = s.liveSince;
+    try { localStorage.setItem(SESSION_KEY, String(sessionStart)); } catch {}
+    renderGifts();
+  }
 }
 
 // Đồng hồ thời gian LIVE: đếm từ lúc phiên bắt đầu (máy chủ gửi liveSince khi đang kết nối)
@@ -166,6 +172,11 @@ function addComment(c) {
   const ago = Object.assign(document.createElement('span'), { className: 'ago', textContent: timeAgo(at) });
   ago.dataset.at = at ?? '';
   name.append(ago);
+  // Chức vụ + lương hiện tại của người bình luận (tự cập nhật khi đổi)
+  const meta = Object.assign(document.createElement('span'), { className: 'meta' });
+  meta.dataset.user = c.username;
+  paintMeta(meta);
+  name.append(meta);
   body.append(name, Object.assign(document.createElement('div'), { className: 'text', textContent: c.text }));
 
   // Chặn / Bỏ chặn người bình luận (nút tự đổi theo danh sách chặn hiện tại)
@@ -187,6 +198,7 @@ function addComment(c) {
     ...RANK_TITLES.map((t) => new Option(t, t)),
     new Option('🛡 Xuống làm Bảo vệ', 'job:bao-ve'),
     new Option('🧹 Xuống làm Lao công', 'job:lao-cong'),
+    new Option('💼 Đi đòi nợ khách hàng', 'job:doi-no'),
     new Option('📝 Làm Thư ký', 'job:thu-ky'),
     new Option('🧮 Làm Kế toán', 'job:ke-toan'),
     new Option('↩ Về lại xưởng', 'job:'),
@@ -203,7 +215,7 @@ function addComment(c) {
   salary.append(
     new Option('💰 Tăng lương…', ''),
     new Option('🎲 Tăng ngẫu nhiên +3–6 triệu', 'raise'),
-    ...[15, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120].map((v) => new Option(`${v} triệu`, v)),
+    ...[15, 20, 30, 40, 50, 60, 70, 80, 90, 100, 120, 150, 200, 250, 300, 400, 500].map((v) => new Option(`${v} triệu`, v)),
     new Option('😴 Giảm lương vì làm biếng → 4tr6', 4.6),
   );
   salary.onchange = () => {
@@ -238,10 +250,9 @@ function addComment(c) {
   const actionsBox = Object.assign(document.createElement('div'), { className: 'feed-actions' });
   actionsBox.append(promote, salary, place, block);
   li.append(avatar, body, actionsBox);
-  const atBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 40;
   feed.append(li);
   while (feed.children.length > FEED_SIZE) feed.firstElementChild.remove();
-  if (atBottom) feed.scrollTop = feed.scrollHeight;
+  feed.scrollTop = feed.scrollHeight; // luôn cuộn xuống bình luận mới nhất
   $('feedEmpty').hidden = true;
 }
 
@@ -252,13 +263,24 @@ let salaries = {};            // username -> lương (triệu/tháng)
 let jobs = {};                // username -> 'bao-ve' | 'lao-cong' | 'thu-ky' | 'ke-toan'
 // 30 -> "30 triệu", 4.6 -> "4tr6"
 const moneyText = (v) => (v < 1 ? `${Math.round(v * 1000)}k` : Number.isInteger(v) ? `${v} triệu` : `${Math.floor(v)}tr${Math.round((v % 1) * 10)}`);
-const JOB_LABEL = { 'bao-ve': '🛡 Bảo vệ', 'lao-cong': '🧹 Lao công', 'thu-ky': '📝 Thư ký', 'ke-toan': '🧮 Kế toán' };
+const JOB_LABEL = { 'bao-ve': '🛡 Bảo vệ', 'lao-cong': '🧹 Lao công', 'thu-ky': '📝 Thư ký', 'ke-toan': '🧮 Kế toán', 'doi-no': '💼 Đòi nợ' };
 let viewerFilter = 'live';    // 'live' = đang trong phiên, 'all' = tất cả
 const ACTIVE_MS = 5 * 60 * 1000;
 // 🟢 TikTok báo đang xem · 🟡 hoạt động ≤ 5 phút · ⚪ có thể đã rời
 const presence = (v) => (onlineSet.has(v.username) ? 'on' : Date.now() - (v.lastAt ?? v.at ?? 0) <= ACTIVE_MS ? 'recent' : 'gone');
 const viewerRanks = new Map(); // username -> { points, title }
+function paintMeta(el) {
+  const u = el.dataset.user;
+  const r = viewerRanks.get(u);
+  const parts = [];
+  if (jobs[u]) parts.push(JOB_LABEL[jobs[u]]);
+  else if (r?.title) parts.push(`👔 ${r.title}`);
+  if (salaries[u]) parts.push(`💰 ${moneyText(salaries[u])}`);
+  el.textContent = parts.join(' · ');
+  el.hidden = !parts.length;
+}
 function renderViewers() {
+  document.querySelectorAll('.feed .meta').forEach(paintMeta);
   const all = [...viewerMap.values()];
   const live = all.filter((v) => presence(v) !== 'gone');
   $('filterLive').textContent = `Đang trong phiên (${live.length})`;
@@ -605,17 +627,37 @@ function fitFrame() {
 new ResizeObserver(fitFrame).observe(preview);
 
 // ---------- Giao diện overlay + URL cho OBS ----------
+// Link cho OBS / LIVE Studio luôn kèm ?an-toan=0.75: thu khung lại để điện thoại không cắt mất mép
+const SAFE_PARAM = 'an-toan=0.75';
+const withSafe = (url) => `${url}${url.includes('?') ? '&' : '?'}${SAFE_PARAM}`;
 const themeSel = $('themeSel');
 let overlayUrl;
 let tunnelBase = null; // https://….trycloudflare.com nếu đường hầm đang chạy
 function applyTheme() {
   const path = themeSel.value;
-  overlayUrl = `${location.origin}${path}`;
+  overlayUrl = withSafe(`${location.origin}${path}`);
   $('overlayUrl').textContent = overlayUrl;
   renderTunnel();
-  frame.src = `${path}${path.includes('?') ? '&' : '?'}preview`;
+  loadPreview();
   try { localStorage.setItem('theme', path); } catch {}
 }
+// Xem trước = chạy thêm một overlay đầy đủ trong Chrome (nặng): mặc định tắt, tự dỡ khi ẩn tab dashboard
+let previewOn = false;
+try { previewOn = localStorage.getItem('previewOn') === '1'; } catch {}
+function loadPreview() {
+  const show = previewOn && !document.hidden;
+  const src = show ? `${themeSel.value}${themeSel.value.includes('?') ? '&' : '?'}preview` : 'about:blank';
+  if (frame.getAttribute('src') !== src) frame.src = src;
+  preview.classList.toggle('off', !previewOn);
+  $('previewBtn').classList.toggle('on', previewOn);
+  $('previewBtn').textContent = previewOn ? '👁 Đang xem trước' : '👁 Xem trước';
+}
+$('previewBtn').onclick = () => {
+  previewOn = !previewOn;
+  try { localStorage.setItem('previewOn', previewOn ? '1' : '0'); } catch {}
+  loadPreview();
+};
+document.addEventListener('visibilitychange', loadPreview);
 try { themeSel.value = localStorage.getItem('theme') || themeSel.value; } catch {}
 if (!themeSel.value) themeSel.selectedIndex = 0;
 themeSel.onchange = applyTheme;
@@ -633,7 +675,7 @@ $('copyBtn').onclick = () => copyText($('copyBtn'), overlayUrl, 'Sao chép URL c
 
 // ---------- Link Cloudflare cho TikTok LIVE Studio (Add link chỉ nhận https) ----------
 function renderTunnel() {
-  const link = tunnelBase ? `${tunnelBase}${themeSel.value}` : '';
+  const link = tunnelBase ? withSafe(`${tunnelBase}${themeSel.value}`) : '';
   $('tunnelRow').hidden = !tunnelBase;
   $('tunnelHint').hidden = Boolean(tunnelBase);
   $('tunnelUrl').textContent = link;
@@ -652,18 +694,25 @@ setInterval(loadTunnel, 15000); // đường hầm chạy lại thì địa ch�
 
 // ---------- Quà nhận được: tổng xu + ước tính tiền ----------
 let gifts = [];
-let giftScope = 'today';
+let giftScope = 'session';
+// Giờ bắt đầu phiên LIVE gần nhất (giữ lại sau khi tắt LIVE để vẫn xem được tổng phiên vừa rồi)
+const SESSION_KEY = 'giftSessionStart';
+var sessionStart = null;
+try { sessionStart = Number(localStorage.getItem(SESSION_KEY)) || null; } catch {}
 const RATE_KEY = 'giftRateVnd';
 try { const r = Number(localStorage.getItem(RATE_KEY)); if (r > 0) $('giftRate').value = r; } catch {}
 const fmtNum = (n) => Math.round(n).toLocaleString('vi-VN');
 function renderGifts() {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
-  const list = giftScope === 'today' ? gifts.filter((g) => g.at >= start.getTime()) : gifts;
+  const from = giftScope === 'session' ? (sessionStart ?? start.getTime()) : giftScope === 'today' ? start.getTime() : 0;
+  const list = gifts.filter((g) => g.at >= from);
   const coins = list.reduce((s, g) => s + (g.coins || 0), 0);
   const rate = Number($('giftRate').value) || 0;
   $('giftCoins').textContent = fmtNum(coins);
   $('giftVnd').textContent = `${fmtNum(coins * rate)} ₫`;
+  // Tiêu đề tab trình duyệt hiện số tiền ước tính, nhìn tab là biết
+  document.title = `${fmtNum(coins * rate)} ₫ · Live Comment Studio`;
   $('giftCount').textContent = fmtNum(list.length);
   // Top người tặng
   const by = new Map();
@@ -687,11 +736,11 @@ $('giftRate').oninput = () => {
   try { localStorage.setItem(RATE_KEY, $('giftRate').value); } catch {}
   renderGifts();
 };
-for (const [id, scope] of [['giftToday', 'today'], ['giftAll', 'all']]) {
+const GIFT_SCOPES = [['giftSession', 'session'], ['giftToday', 'today'], ['giftAll', 'all']];
+for (const [id, scope] of GIFT_SCOPES) {
   $(id).onclick = () => {
     giftScope = scope;
-    $('giftToday').classList.toggle('on', scope === 'today');
-    $('giftAll').classList.toggle('on', scope === 'all');
+    for (const [other, sc] of GIFT_SCOPES) $(other).classList.toggle('on', sc === scope);
     renderGifts();
   };
 }

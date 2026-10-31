@@ -87,22 +87,25 @@ button.small, select.small { padding: 5px 10px; font-size: 13px; width: auto; }
 .live-dot.on { color: var(--accent); }
 .live-dot.on::before { background: var(--accent); box-shadow: 0 0 0 4px rgba(45, 212, 191, .15); }
 
-.feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 70vh; overflow-y: auto; }
-.feed li { display: grid; grid-template-columns: 40px 1fr auto; gap: 12px; align-items: start; padding: 8px; border-radius: 10px; }
-.feed li:hover { background: var(--panel-2); }
+.feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 70vh; overflow-y: auto; overflow-x: hidden; }
+/* Mỗi bình luận: avatar | (tên · giờ · chức vụ / nội dung / nút thao tác khi rê chuột) */
+.feed li { display: grid; grid-template-columns: 36px minmax(0, 1fr); column-gap: 10px; align-items: start; padding: 8px 10px; border-radius: 10px; background: rgba(30, 41, 59, .45); border-left: 3px solid transparent; }
+.feed li:hover { background: var(--panel-2); border-left-color: var(--accent); }
 .feed li.filtered { opacity: .5; }
-.feed .avatar { width: 40px; height: 40px; border-radius: 50%; background: #334155; display: grid; place-items: center; object-fit: cover; color: var(--accent); font-weight: 700; }
-.feed .name { color: var(--accent); font-size: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.feed .text { overflow-wrap: anywhere; }
-.feed .ago { color: var(--muted); font-size: 12px; }
-.feed .tag { font-size: 11px; padding: 1px 8px; border-radius: 999px; background: #450a0a; color: var(--danger); }
-.feed-actions { display: flex; gap: 6px; align-items: center; opacity: 0; }
-.feed li:hover .feed-actions, .feed-actions:focus-within { opacity: 1; }
-.feed .promote { width: auto; padding: 4px 6px; font-size: 12px; }
-.feed .block { opacity: 0; font-size: 12px; padding: 3px 8px; }
-.feed .block { opacity: 1; }
+.feed .avatar { width: 36px; height: 36px; border-radius: 50%; background: #334155; display: grid; place-items: center; object-fit: cover; color: var(--accent); font-weight: 700; }
+.feed li > div:nth-child(2) { min-width: 0; }
+.feed .name { color: var(--accent); font-size: 13px; font-weight: 600; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; line-height: 1.5; }
+.feed .text { margin-top: 2px; font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; }
+.feed .ago { color: var(--muted); font-size: 11px; font-weight: 400; white-space: nowrap; }
+.feed .meta { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: rgba(133, 77, 14, .25); color: #fde68a; border: 1px solid rgba(202, 138, 4, .5); white-space: nowrap; }
+.feed .tag { font-size: 11px; padding: 1px 8px; border-radius: 999px; background: #450a0a; color: var(--danger); white-space: nowrap; }
+/* Nút thao tác: chỉ hiện khi rê chuột, nằm dưới nội dung nên không chiếm chỗ của chữ */
+.feed-actions { grid-column: 2; display: none; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+.feed li:hover .feed-actions, .feed-actions:focus-within { display: flex; }
+.feed .promote { width: auto; max-width: 100%; padding: 4px 6px; font-size: 12px; }
+.feed .block { font-size: 12px; padding: 3px 8px; }
 .feed .block.unblock { background: #0f766e; color: #fff; border-color: #14b8a6; }
-.feed li:has(.block.unblock) .feed-actions { opacity: 1; }
+.feed li:has(.block.unblock) .feed-actions { display: flex; }
 .empty { color: var(--muted); margin: 0; }
 
 .preview { border-radius: 12px; overflow: hidden; aspect-ratio: 16 / 9; background: #0f172a; position: relative; margin: 0 auto; width: 100%; }
@@ -141,7 +144,6 @@ footer { color: #64748b; font-size: 13px; }
 }
 @media (max-width: 560px) {
   .connect, .grid { grid-template-columns: 1fr; }
-  .feed li { grid-template-columns: 40px 1fr; }
   .feed .block { display: none; }
 }
 
@@ -160,3 +162,9 @@ footer { color: #64748b; font-size: 13px; }
 .gift-list .t { color: var(--muted, #94a3b8); font-size: 12px; }
 .gift-list .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gift-list .c { color: #fbbf24; font-weight: 700; white-space: nowrap; }
+
+/* Tắt xem trước overlay cho nhẹ máy */
+.preview .preview-off { display: none; position: absolute; inset: 0; margin: 0; padding: 24px; place-content: center; text-align: center; color: var(--muted, #94a3b8); font-size: 14px; }
+.preview.off iframe { visibility: hidden; }
+.preview.off .preview-off { display: grid; }
+#previewBtn.on { background: var(--accent, #2dd4bf); color: #042f2e; }

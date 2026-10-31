@@ -9,7 +9,7 @@ import { DisplayQueue } from './display-queue.js';
 import { TikTokSource } from './tiktok.js';
 import { startDemo } from './demo.js';
 import { Ranks, POINTS, RANKS } from './ranks.js';
-import { detectPromotion, detectNegative, detectTired, detectJobRequest, detectTimesheet, detectLoveBoss, detectChairman, detectMachineRequest, detectNoPay, detectCV, detectSalaryRequest, detectRaise, detectFlirt, detectHateBoss, detectGuardWord, detectDrinking, detectBloodsucker, detectStrike, detectPraiseBoss, detectJoin, detectDiligent, detectBossWife, detectEffort, detectResign, detectLazy, detectMaternity } from './promote.js';
+import { detectPromotion, detectNegative, detectTired, detectJobRequest, detectTimesheet, detectLoveBoss, detectChairman, detectMachineRequest, detectNoPay, detectCV, detectRaise, detectFlirt, detectHateBoss, detectGuardWord, detectDrinking, detectBloodsucker, detectStrike, detectPraiseBoss, detectJoin, detectDiligent, detectBossWife, detectEffort, detectResign, detectLazy, detectMaternity, detectAdvance, detectPayCut, detectQuit, detectIuBoss, detectGreetBoss, detectSwitchMachine, detectCurse, detectPayDemand, detectLessHours } from './promote.js';
 
 const HOST = process.env.HOST || '127.0.0.1';
 const PORT = Number(process.env.PORT) || 3000;
@@ -32,7 +32,7 @@ const SALARY_FILE = path.resolve('data', 'salaries.json');
 let salaries = {};
 try { salaries = JSON.parse(fs.readFileSync(SALARY_FILE, 'utf8')); } catch {}
 const SALARY_LAZY = 4.6; // giảm lương vì làm biếng
-const SALARY_MAX = 120;  // lương cao nhất (triệu/tháng)
+const SALARY_MAX = 500;  // lương cao nhất (triệu/tháng)
 const RAISE_STREAK_MAX = 2;          // tối đa 2 lần tăng lương liên tiếp
 const RAISE_STREAK_MS = 10 * 60 * 1000;
 let raiseStreak = null;              // lượt tăng lương gần nhất: { name, n, at } — người khác được tăng thì tính lại
@@ -41,7 +41,7 @@ const lastPromote = new Map();       // username -> thời điểm thăng chức
 const SALARY_START = 12; // mốc khởi điểm khi chưa có lương, lần tăng đầu = 12 + 3..6
 // Vị trí đặc biệt sếp điều chuyển: bảo vệ / lao công
 const JOBS_FILE = path.resolve('data', 'jobs.json');
-const JOBS = { 'bao-ve': 'Bảo vệ', 'lao-cong': 'Lao công', 'thu-ky': 'Thư ký', 'ke-toan': 'Kế toán' };
+const JOBS = { 'bao-ve': 'Bảo vệ', 'lao-cong': 'Lao công', 'thu-ky': 'Thư ký', 'ke-toan': 'Kế toán', 'doi-no': 'Đòi nợ' };
 let jobs = {};
 try { jobs = JSON.parse(fs.readFileSync(JOBS_FILE, 'utf8')); } catch {}
 // Máy mà nhân viên xin làm (username -> mã máy)
@@ -280,9 +280,10 @@ function inSessionCount() {
   return names.size;
 }
 
-// Donate: quà nào cũng tăng lương (quà càng nhiều xu tăng càng nhiều); từ 10 xu (hoa Rosa) thì lên chức luôn
+// Donate: quà nào cũng tăng lương (quà càng nhiều xu tăng càng nhiều); từ 10 xu (hoa Rosa) lên 1 chức, từ 20 xu lên thẳng Giám đốc
 const DONATE_RAISE_COINS = 1;
 const DONATE_PROMOTE_COINS = 10;
+const DONATE_DIRECTOR_COINS = 20; // từ 20 xu: lên thẳng Giám đốc nhà máy, chào mừng bằng pháo hoa lớn
 // Quà càng nhiều xu thì tăng lương càng nhiều (triệu/tháng)
 function donateRaise(coins) {
   const pick = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -299,7 +300,10 @@ function rewardDonate(a) {
   const coins = Number(a.coins) || 0;
   if (coins < DONATE_RAISE_COINS) return;
   let delay = 0;
-  if (coins >= DONATE_PROMOTE_COINS) {
+  if (coins >= DONATE_DIRECTOR_COINS) {
+    actions.setRank({ username: a.username, title: RANKS[RANKS.length - 1].title, byBoss: true, reason: 'giám đốc' });
+    delay = 6500;
+  } else if (coins >= DONATE_PROMOTE_COINS) {
     const level = ranks.get(a.username)?.level ?? 0;
     if (level < RANKS.length - 1) {
       // để bảng thăng chức hiện xong rồi mới báo tăng lương
@@ -311,6 +315,18 @@ function rewardDonate(a) {
   }
 }
 
+// Chia sẻ phiên LIVE: overlay cảm ơn bằng pháo hoa (mỗi người tối đa 1 lần / phút)
+const SHARE_COOLDOWN = 60 * 1000;
+const lastShare = new Map();
+function thankShare(a) {
+  if (a.demo || !a.username || a.username.toLowerCase() === settings.username.toLowerCase()) return;
+  const now = Date.now();
+  if (now - (lastShare.get(a.username) ?? 0) < SHARE_COOLDOWN) return;
+  lastShare.set(a.username, now);
+  const m = members.get(a.username) ?? { username: a.username, nickname: a.nickname, avatar: a.avatar };
+  broadcast({ type: 'shareThanks', member: m, boss: settings.ownerName });
+}
+
 function handleActivity(a) {
   alias(a);
   if (a.username) lastSeen.set(a.username, Date.now());
@@ -320,7 +336,10 @@ function handleActivity(a) {
     if (!a.demo) logGift(a);
     rewardDonate(a);
   }
-  else if (a.kind === 'share') award(a, POINTS.share);
+  else if (a.kind === 'share') {
+    award(a, POINTS.share);
+    thankShare(a);
+  }
   else if (a.kind === 'follow') award(a, POINTS.follow);
 }
 
@@ -365,6 +384,9 @@ const AUTO_RANK_COOLDOWN = 2 * 60 * 1000;
 const lastAutoRank = new Map();
 const CV_COOLDOWN = 60 * 1000;
 const lastCV = new Map(); // username -> thời điểm
+const HELLO_COOLDOWN = 2 * 60 * 1000;
+const lastHello = new Map(); // username -> lần sếp chào lại gần nhất
+const lastCurse = new Map(); // username -> lần bị đuổi vì chửi tục gần nhất
 function autoRank(c) {
   if (!settings.autoPromote || c.demo || c.username.toLowerCase() === settings.username.toLowerCase()) return;
   const now = Date.now();
@@ -377,6 +399,20 @@ function autoRank(c) {
     const m = members.get(c.username) ?? { username: c.username, nickname: c.nickname, avatar: c.avatar };
     return broadcast({ type: 'cv', member: m, company: 'Công ty Bao bì Tuấn Tú', boss: settings.ownerName });
   }
+  // Chửi tục: đuổi ra khỏi cổng luôn (không chờ thời gian chờ chung; mỗi người tối đa 1 lần / 30 giây)
+  if (detectCurse(c.text)) {
+    if (now - (lastCurse.get(c.username) ?? 0) < 30 * 1000) return;
+    lastCurse.set(c.username, now);
+    lastAutoRank.set(c.username, now);
+    const m = members.get(c.username) ?? { username: c.username, nickname: c.nickname, avatar: c.avatar };
+    return broadcast({ type: 'kickout', member: m, reason: 'chửi tục', boss: settings.ownerName });
+  }
+  // Chào sếp: sếp chào lại (thời gian chờ riêng 2 phút, không chặn các luật khác)
+  if (detectGreetBoss(c.text) && now - (lastHello.get(c.username) ?? 0) > HELLO_COOLDOWN) {
+    lastHello.set(c.username, now);
+    const m = members.get(c.username) ?? { username: c.username, nickname: c.nickname, avatar: c.avatar };
+    broadcast({ type: 'bossHello', member: m, boss: settings.ownerName });
+  }
   if (now - (lastAutoRank.get(c.username) ?? 0) < AUTO_RANK_COOLDOWN) return;
   // Xin nghỉ thai sản: cho đi bệnh viện Từ Dũ luôn (overlay đưa xe cấp cứu tới chở đi)
   if (detectMaternity(c.text)) {
@@ -384,29 +420,53 @@ function autoRank(c) {
     const m = members.get(c.username) ?? { username: c.username, nickname: c.nickname, avatar: c.avatar };
     return broadcast({ type: 'maternity', member: m, hospital: 'Bệnh viện Từ Dũ', boss: settings.ownerName });
   }
+  // "Làm việc khác": chuyển sang đứng một máy khác (ngẫu nhiên, khác máy đang làm)
+  if (detectSwitchMachine(c.text)) {
+    const others = MACHINES.filter((m) => m !== machineWish[c.username]);
+    lastAutoRank.set(c.username, now);
+    return actions.setMachine({ username: c.username, machine: others[Math.floor(Math.random() * others.length)] });
+  }
+  // Xin nghỉ việc: đuổi ra khỏi cổng, cho xuống ca
+  if (detectQuit(c.text)) {
+    lastAutoRank.set(c.username, now);
+    const m = members.get(c.username) ?? { username: c.username, nickname: c.nickname, avatar: c.avatar };
+    return broadcast({ type: 'kickout', member: m, boss: settings.ownerName });
+  }
+  // Đòi "giảm giờ làm": trừ lương ngẫu nhiên 1–2 triệu
+  if (detectLessHours(c.text)) {
+    if (salaries[c.username] === SALARY_LAZY) return; // đã ở mức thấp nhất
+    lastAutoRank.set(c.username, now);
+    return actions.setSalary({ username: c.username, amount: 'cut', by: 1 + Math.floor(Math.random() * 2), reason: 'giảm giờ làm' });
+  }
+  // Nói "giảm lương": trừ 30% lương hiện tại (thấp nhất 4tr6)
+  if (detectPayCut(c.text)) {
+    const before = salaries[c.username] || SALARY_START;
+    if (before <= SALARY_LAZY) return; // đã ở mức thấp nhất
+    lastAutoRank.set(c.username, now);
+    return actions.setSalary({ username: c.username, amount: 'cut', by: Math.max(0.1, Math.round(before * 0.3 * 10) / 10), reason: 'giảm lương' });
+  }
+  // Xin ứng lương: cho đi làm Đòi nợ khách hàng cho sếp
+  if (detectAdvance(c.text)) {
+    if (jobs[c.username] === 'doi-no') return; // đang đi đòi nợ rồi
+    lastAutoRank.set(c.username, now);
+    return actions.setJob({ username: c.username, job: 'doi-no', reason: 'ứng lương' });
+  }
   if (detectGuardWord(c.text)) {
     if (salaries[c.username] === SALARY_LAZY) return; // đã ở mức thấp nhất
     lastAutoRank.set(c.username, now);
     return actions.setSalary({ username: c.username, amount: 'cut', by: 1, reason: 'bảo vệ' });
   }
-  const pay = detectSalaryRequest(c.text);
-  if (pay && pay >= 5) {
-    const value = Math.min(SALARY_MAX, pay);
-    if (salaries[c.username] === value) return;
-    lastAutoRank.set(c.username, now);
-    return actions.setSalary({ username: c.username, amount: value, reason: 'xin' });
-  }
-  if (!pay && detectEffort(c.text)) {
+  if (detectEffort(c.text)) {
     if ((salaries[c.username] ?? 0) >= SALARY_MAX) return; // đã kịch trần
     lastAutoRank.set(c.username, now);
-    return actions.setSalary({ username: c.username, amount: 'raise', by: 0.5, reason: 'cố gắng' });
+    return actions.setSalary({ username: c.username, amount: 'raise', by: 1 + Math.floor(Math.random() * 3), reason: 'cố gắng' }); // +1–3 triệu
   }
-  if (!pay && detectDiligent(c.text)) {
+  if (detectDiligent(c.text)) {
     if ((salaries[c.username] ?? 0) >= SALARY_MAX) return; // đã kịch trần
     lastAutoRank.set(c.username, now);
     return actions.setSalary({ username: c.username, amount: 'raise', by: 1 + Math.floor(Math.random() * 3), reason: 'chăm chỉ' });
   }
-  if (!pay && detectRaise(c.text)) {
+  if (detectRaise(c.text)) {
     if ((salaries[c.username] ?? 0) >= SALARY_MAX) return; // đã kịch trần
     lastAutoRank.set(c.username, now);
     return actions.setSalary({ username: c.username, amount: 'raise', reason: 'xin' });
@@ -418,6 +478,12 @@ function autoRank(c) {
   if (detectNoPay(c.text)) {
     lastAutoRank.set(c.username, now);
     return actions.fire({ username: c.username, reason: 'chưa có lương' });
+  }
+  // Đòi "trả lương": cho đi làm Bảo vệ
+  if (detectPayDemand(c.text)) {
+    if (jobs[c.username] === 'bao-ve') return; // đã là bảo vệ
+    lastAutoRank.set(c.username, now);
+    return actions.setJob({ username: c.username, job: 'bao-ve', reason: 'trả lương' });
   }
   if (detectChairman(c.text)) {
     if (jobs[c.username] === 'bao-ve') return; // đã là bảo vệ
@@ -433,6 +499,11 @@ function autoRank(c) {
     if (jobs[c.username] === 'thu-ky') return; // đã là thư ký
     lastAutoRank.set(c.username, now);
     return actions.setJob({ username: c.username, job: 'thu-ky', reason: 'khen sếp' });
+  }
+  if (detectIuBoss(c.text)) {
+    if (jobs[c.username] === 'thu-ky') return; // đã là thư ký
+    lastAutoRank.set(c.username, now);
+    return actions.setJob({ username: c.username, job: 'thu-ky', reason: 'iu sếp' });
   }
   if (detectLoveBoss(c.text)) {
     lastAutoRank.set(c.username, now);
@@ -669,7 +740,7 @@ const actions = {
     const name = String(username ?? '').trim().replace(/^@/, '');
     const value = Number(amount);
     const before = salaries[name] ?? 0;
-    // amount = 'raise': tăng ngẫu nhiên 3–6 triệu, tối đa 120 triệu
+    // amount = 'raise': tăng ngẫu nhiên 3–6 triệu, tối đa SALARY_MAX
     // amount = 'cut': trừ ngẫu nhiên 3–6 triệu, thấp nhất 4tr6
     const jump = by > 0 ? Number(by) : 3 + Math.floor(Math.random() * 4);
     const raw = amount === 'raise' ? Math.min(SALARY_MAX, Math.max(before, SALARY_START) + jump)
@@ -699,7 +770,7 @@ const actions = {
     const before = ranks.get(name)?.level ?? 0;
     const target = RANKS.findIndex((r) => r.title.toLowerCase() === String(title).toLowerCase());
     if (reason && target > before) {
-      if (reason !== 'donate' && Date.now() - (lastPromote.get(name) ?? 0) < RAISE_STREAK_MS) return false;
+      if (reason !== 'donate' && reason !== 'giám đốc' && Date.now() - (lastPromote.get(name) ?? 0) < RAISE_STREAK_MS) return false;
       lastPromote.set(name, Date.now());
     } else if (target < before) lastPromote.delete(name);
     const entry = ranks.setRank({ username: name, nickname: m?.nickname, avatar: m?.avatar }, title, Boolean(byBoss));

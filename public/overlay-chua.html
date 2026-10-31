@@ -635,6 +635,7 @@
   import { connectWS, initials } from '/ws-client.js';
 
   const $ = (id) => document.getElementById(id);
+  let sceneReady = false; // đã dựng cảnh lần đầu chưa (máy chủ chạy lại thì không dựng lại)
   const params = new URLSearchParams(location.search);
   if (params.has('nen')) document.body.classList.add('nen');
   if (params.has('preview')) document.body.classList.add('preview');
@@ -643,7 +644,9 @@
   // Co giãn khung 1080×1920 vừa với nguồn OBS, căn giữa
   const fit = () => {
     const { clientWidth: w, clientHeight: h } = document.documentElement;
-    const s = Math.min(w / 1080, h / 1920);
+    // ?an-toan (mặc định 0.82) hoặc ?an-toan=0.75: thu khung lại để điện thoại không cắt mất mép
+    const safe = params.has('an-toan') ? Math.min(1, Number(params.get('an-toan')) || 0.82) : 1;
+    const s = Math.min(w / 1080, h / 1920) * safe;
     stage.style.transform = `translate(${(w - 1080 * s) / 2}px, ${(h - 1920 * s) / 2}px) scale(${s})`;
   };
   new ResizeObserver(fit).observe(document.documentElement);
@@ -852,6 +855,8 @@
   // Vòng lặp: đứng hàng (đi tới đúng chỗ của mình), lượt tới thì đi lối giữa lên quỳ lạy, dâng lễ rồi về cuối hàng
   let last = performance.now();
   function tick(now) {
+    // 30 khung hình/giây là đủ (LIVE phát 30fps): bỏ bớt nửa số khung để đỡ tốn CPU/GPU
+    if (now - last < 30) return requestAnimationFrame(tick);
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
     callBatch(now);
@@ -1009,11 +1014,15 @@
     switch (msg.type) {
       case 'hello':
         applySettings(msg.settings);
-        resetCrowd();
         for (const m of msg.members) known.set(m.username, m);
-        msg.members.slice(-MAX_PEOPLE).forEach((m) => place(m));
-        // quà trong 10 phút gần đây: hiện vật phẩm trên đầu người tặng
-        for (const g of (msg.gifts ?? []).filter((g) => Date.now() - g.at < 10 * 60 * 1000)) addItem(g);
+        // Máy chủ khởi động lại giữa buổi LIVE: giữ nguyên cảnh đang chạy, không dựng lại từ đầu
+        if (!sceneReady) {
+          sceneReady = true;
+          resetCrowd();
+          msg.members.slice(-MAX_PEOPLE).forEach((m) => place(m));
+          // quà trong 10 phút gần đây: hiện vật phẩm trên đầu người tặng
+          for (const g of (msg.gifts ?? []).filter((g) => Date.now() - g.at < 10 * 60 * 1000)) addItem(g);
+        }
         total = msg.members.length;
         viewers = msg.viewers;
         renderCount();
