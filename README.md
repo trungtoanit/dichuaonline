@@ -126,6 +126,8 @@ Khi chưa có (hoặc ít) người xem, overlay nhà máy giả lập **5–10 
 >
 > Lấy dòng `https://….trycloudflare.com` in ra, dán `https://….trycloudflare.com/overlay/nha-may` vào **Add link**. Người truy cập qua đường hầm **chỉ xem** được overlay (dashboard, điều khiển và tải file bị chặn). Mỗi lần chạy lại lệnh, địa chỉ sẽ đổi.
 >
+> Nếu người xem trên điện thoại bị mất hai mép trái/phải (app TikTok cắt video cho vừa màn hình dài), thêm `?an-toan` vào link: `https://….trycloudflare.com/overlay/nha-may?an-toan`. Cả khung được thu lại (mặc định 82%) và viền tô nền tối; chỉnh tỉ lệ bằng `?an-toan=0.85`.
+>
 > **Nếu LIVE trực tiếp từ điện thoại**: không ghép được overlay vào video. Overlay chỉ dùng được khi phát từ máy tính.
 
 ### 6. Kiểm thử trước buổi LIVE thật

@@ -22,6 +22,8 @@
   html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; }
   body { font-family: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif; }
   body.preview { background: #0f172a; }
+  /* ?an-toan: thu nhỏ khung để điện thoại màn hình dài không cắt mất hai bên; viền tô nền kín (che camera bên dưới) */
+  body.an-toan { background: var(--steel-dark); }
 
   /* #frame: khung màn hình 1080×1920 (co giãn theo OBS), cắt phần ngoài.
      #stage: toàn bộ nhà máy, máy quay ảo zoom/lia bên trong. #hud: chữ cố định, không zoom. */
@@ -406,11 +408,16 @@
 
   const stage = $('stage');
   const screenFrame = $('frame');
+  // App TikTok trên điện thoại màn hình dài (~19.5:9) phóng video 9:16 cho đầy màn và cắt ~9% mỗi bên.
+  // ?an-toan (mặc định 0.82) hoặc ?an-toan=0.85: thu cả khung lại để mọi thứ nằm trong vùng không bị cắt.
+  const safeParam = new URLSearchParams(location.search).get('an-toan');
+  const safeScale = safeParam === null ? 1 : Math.min(1, Math.max(0.6, parseFloat(safeParam) || 0.82));
+  if (safeScale < 1) document.body.classList.add('an-toan');
   const fit = () => {
     const { clientWidth: w, clientHeight: h } = document.documentElement;
     // Phủ kín khung nguồn (LIVE Studio/OBS), không để viền trống; ?fit=contain để giữ nguyên khung
     const fitMode = new URLSearchParams(location.search).get('fit') === 'contain' ? Math.min : Math.max;
-    const s = fitMode(w / 1080, h / 1920);
+    const s = fitMode(w / 1080, h / 1920) * safeScale;
     screenFrame.style.transform = `translate(${(w - 1080 * s) / 2}px, ${(h - 1920 * s) / 2}px) scale(${s})`;
   };
   new ResizeObserver(fit).observe(document.documentElement);
