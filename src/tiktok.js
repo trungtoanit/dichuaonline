@@ -71,6 +71,13 @@ export function toComment(data) {
   };
 }
 
+// Giờ phiên LIVE bắt đầu (ms): lấy create_time (giây) trong thông tin phòng TikTok,
+// không hợp lệ (thiếu, ở tương lai, cũ hơn 2 ngày) thì coi như vừa bắt đầu lúc kết nối
+export function liveStartedAt(roomInfo, now = Date.now()) {
+  const t = Number(roomInfo?.data?.create_time ?? roomInfo?.create_time) * 1000;
+  return Number.isFinite(t) && t <= now && now - t < 2 * 86400_000 ? t : now;
+}
+
 export class TikTokSource extends EventEmitter {
   constructor() {
     super();
@@ -83,7 +90,7 @@ export class TikTokSource extends EventEmitter {
   }
 
   #setStatus(state, message) {
-    this.status = { state, message, username: this.username, retries: this.retries };
+    this.status = { state, message, username: this.username, retries: this.retries, liveSince: state === 'connected' ? this.liveSince : null };
     this.emit('status', this.status);
   }
 
@@ -201,6 +208,7 @@ export class TikTokSource extends EventEmitter {
       if (this.conn !== conn) return; // đã bị thay thế trong lúc chờ
       this.retries = 0;
       saveRoom(this.username, state.roomId);
+      this.liveSince = liveStartedAt(state.roomInfo);
       this.#setStatus('connected', `Đang nhận dữ liệu từ @${this.username} (room ${state.roomId})`);
     } catch (err) {
       if (this.conn !== conn) return;

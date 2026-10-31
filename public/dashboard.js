@@ -123,7 +123,19 @@ function setStatus(s) {
   }[s.state] ?? s.state;
   $('statusMsg').textContent = s.message;
   $('demoBtn').setAttribute('aria-pressed', String(demo));
+  tickLiveTime();
 }
+
+// Đồng hồ thời gian LIVE: đếm từ lúc phiên bắt đầu (máy chủ gửi liveSince khi đang kết nối)
+const pad2 = (n) => String(n).padStart(2, '0');
+function tickLiveTime() {
+  const since = status.state === 'connected' ? status.liveSince : null;
+  if (!since) return void ($('sLiveTime').textContent = '--:--');
+  const sec = Math.max(0, Math.floor((Date.now() - since) / 1000));
+  const h = Math.floor(sec / 3600);
+  $('sLiveTime').textContent = `${h ? `${h}:` : ''}${pad2(Math.floor(sec / 60) % 60)}:${pad2(sec % 60)}`;
+}
+setInterval(tickLiveTime, 1000);
 
 function setStats(s) {
   $('sReceived').textContent = fmt.format(s.received);

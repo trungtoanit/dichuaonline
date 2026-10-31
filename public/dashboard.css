@@ -57,7 +57,7 @@ button.primary { background: var(--accent); color: #042f2e; border-color: var(--
 button[aria-pressed="true"] { background: #14532d; border-color: #22c55e; color: #4ade80; }
 button.small, select.small { padding: 5px 10px; font-size: 13px; width: auto; }
 
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
 .stat { background: var(--panel-2); border-radius: 14px; padding: 14px 18px; display: grid; }
 .stat span { color: var(--muted); font-size: 13px; }
 .stat b { font-size: 28px; font-variant-numeric: tabular-nums; }
@@ -137,6 +137,7 @@ footer { color: #64748b; font-size: 13px; }
 @media (max-width: 900px) {
   .cols { grid-template-columns: 1fr; }
   .stats { grid-template-columns: repeat(2, 1fr); }
+  .stats .stat:first-child { grid-column: 1 / -1; }
 }
 @media (max-width: 560px) {
   .connect, .grid { grid-template-columns: 1fr; }
