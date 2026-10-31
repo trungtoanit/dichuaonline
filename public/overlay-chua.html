@@ -204,33 +204,54 @@
     position: relative; z-index: 3;
     box-shadow: 0 4px 10px rgba(0, 0, 0, .35);
   }
-  .pt .torso { position: relative; width: 112px; height: 96px; margin-top: -10px; z-index: 2; transform-origin: 50% 100%; transition: height .5s; }
+  /* Áo tràng Phật tử: dài tới mắt cá, tay áo rộng thụng, cổ giao (vạt chéo), đeo tràng hạt.
+     Màu lam hoặc nâu tùy người (--r1, --r2). */
+  .pt { --r1: #8593a0; --r2: #5f6d7a; --r3: #46525e; }
+  .pt.nau { --r1: #93785c; --r2: #6e5640; --r3: #4f3d2d; }
+  .pt .torso { position: relative; width: 116px; height: 138px; margin-top: -12px; z-index: 2; transform-origin: 50% 100%; transition: height .5s; }
   .pt .robe {
-    position: absolute; left: 10px; top: 0; width: 92px; height: 100%;
-    background: linear-gradient(180deg, #7b6a5a, #5a4a3d);
-    border-radius: 42px 42px 16px 16px;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, .35);
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, var(--r1), var(--r2));
+    clip-path: path('M38 0 H78 Q106 4 108 34 L116 138 H0 L8 34 Q10 4 38 0Z');
+    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .35));
   }
-  .pt .robe::before { /* cổ áo chéo */
-    content: ""; position: absolute; left: 50%; top: 6px; width: 32px; height: 32px;
-    border-left: 4px solid #3f332a; border-bottom: 4px solid #3f332a;
-    transform: translateX(-50%) rotate(-45deg); border-radius: 0 0 0 6px;
+  .pt .robe::before { /* nếp áo dọc */
+    content: ""; position: absolute; left: 30px; right: 30px; top: 60px; bottom: 0;
+    background: repeating-linear-gradient(90deg, transparent 0 16px, rgba(0, 0, 0, .12) 16px 18px);
   }
-  /* Tay áo + bàn tay; đứng yên / quỳ thì chắp tay trước ngực */
+  /* Cổ giao: cổ áo trắng bên trong, vạt trái phủ chéo sang phải tới eo */
+  .pt .collar { position: absolute; left: 0; right: 0; top: 0; height: 80px; z-index: 1; pointer-events: none; }
+  .pt .collar::before {
+    content: ""; position: absolute; left: 44px; top: 0; width: 28px; height: 22px;
+    background: #f3eee4; clip-path: polygon(0 0, 100% 0, 50% 100%);
+  }
+  .pt .collar::after {
+    content: ""; position: absolute; left: 36px; top: -2px; width: 14px; height: 84px;
+    background: var(--r3); transform: rotate(-32deg); transform-origin: 50% 0; border-radius: 4px;
+  }
+  /* Tràng hạt đeo cổ */
+  .pt .beads {
+    position: absolute; left: 30px; top: 4px; width: 56px; height: 46px; z-index: 2;
+    border-radius: 0 0 50% 50%; border: 5px dotted #3b2a1e; border-top: none; opacity: .9;
+  }
+  /* Tay áo rộng thụng + bàn tay; đứng yên / quỳ thì chắp tay trước ngực */
   .pt .arm {
-    position: absolute; top: 12px; width: 22px; height: 60px; border-radius: 11px; z-index: 1;
-    background: linear-gradient(180deg, #6e5e4f, #54463a);
+    position: absolute; top: 12px; width: 34px; height: 74px; z-index: 3;
+    background: linear-gradient(180deg, var(--r1), var(--r2));
+    clip-path: polygon(30% 0, 70% 0, 100% 92%, 82% 100%, 18% 100%, 0 92%);
     transform-origin: 50% 10px; transition: transform .4s;
   }
-  .pt .arm::after { content: ""; position: absolute; left: 2px; bottom: -8px; width: 18px; height: 18px; border-radius: 50%; background: #e9bf95; }
-  .pt .arm.l { left: 2px; transform: rotate(-48deg); }
-  .pt .arm.r { right: 2px; transform: rotate(48deg); }
-  /* Chân + giày */
-  .pt .legs { position: relative; width: 60px; height: 46px; margin-top: -16px; z-index: 1; transition: height .5s; }
-  .pt .leg { position: absolute; top: 0; width: 20px; height: 100%; border-radius: 8px; background: #3a2f27; transform-origin: 50% 0; }
-  .pt .leg::after { content: ""; position: absolute; bottom: -6px; left: -3px; width: 26px; height: 12px; border-radius: 10px 10px 4px 4px; background: #1b1410; }
-  .pt .leg.l { left: 6px; }
-  .pt .leg.r { right: 6px; }
+  .pt .hand { position: absolute; left: 50%; bottom: -10px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: #e9bf95; }
+  .pt .arm-wrap { position: absolute; top: 12px; width: 34px; height: 74px; z-index: 3; transform-origin: 50% 10px; transition: transform .4s; }
+  .pt .arm-wrap .arm { position: absolute; inset: 0; top: 0; }
+  .pt .arm-wrap.l { left: 0; transform: rotate(-44deg); }
+  .pt .arm-wrap.r { right: 0; transform: rotate(44deg); }
+  /* Chân: chỉ thấy mắt cá + dép dưới vạt áo */
+  .pt .legs { position: relative; width: 56px; height: 16px; margin-top: -6px; z-index: 1; transition: height .5s; }
+  .pt .leg { position: absolute; top: 0; width: 16px; height: 100%; border-radius: 6px; background: #e2b48a; transform-origin: 50% 0; }
+  .pt .leg::after { content: ""; position: absolute; bottom: -6px; left: -4px; width: 24px; height: 10px; border-radius: 10px 10px 3px 3px; background: #2a1f18; }
+  .pt .leg.l { left: 8px; }
+  .pt .leg.r { right: 8px; }
   .pt .nm {
     margin-top: 10px; max-width: 160px;
     padding: 2px 10px; border-radius: 999px;
@@ -244,19 +265,19 @@
   @keyframes bob { to { transform: translateY(-4px); } }
   /* Bước đi: chân bước, tay vung ngược chân, người nhún nhẹ */
   .pt.walking .fig { animation: stepBob .3s ease-in-out infinite alternate; }
-  .pt.walking .leg.l, .pt.walking .arm.r { animation: swingA .6s ease-in-out infinite alternate; }
-  .pt.walking .leg.r, .pt.walking .arm.l { animation: swingB .6s ease-in-out infinite alternate; }
+  .pt.walking .leg.l, .pt.walking .arm-wrap.r { animation: swingA .6s ease-in-out infinite alternate; }
+  .pt.walking .leg.r, .pt.walking .arm-wrap.l { animation: swingB .6s ease-in-out infinite alternate; }
   @keyframes stepBob { from { transform: translateY(0); } to { transform: translateY(-5px); } }
-  @keyframes swingA { from { transform: rotate(20deg); } to { transform: rotate(-20deg); } }
-  @keyframes swingB { from { transform: rotate(-20deg); } to { transform: rotate(20deg); } }
+  @keyframes swingA { from { transform: rotate(16deg); } to { transform: rotate(-16deg); } }
+  @keyframes swingB { from { transform: rotate(-16deg); } to { transform: rotate(16deg); } }
   /* Đứng chắp tay vái */
   .pt.bowing .head { animation: bow 2.4s ease-in-out infinite; }
   @keyframes bow { 0%, 100% { transform: none; } 40%, 60% { transform: translateY(10px) scale(.96); } }
   /* Quỳ: chân gập dưới áo, người thấp xuống; lạy: cúi đầu sát xuống rồi ngẩng lên */
-  .pt.kneel .legs { height: 12px; }
-  .pt.kneel .leg::after { display: none; }
-  .pt.kneel .torso { height: 82px; }
-  .pt.kneel .robe { left: 4px; width: 104px; border-radius: 42px 42px 26px 26px; }
+  .pt.kneel .legs { height: 0; }
+  .pt.kneel .leg { display: none; }
+  .pt.kneel .torso { height: 100px; }
+  .pt.kneel .robe { clip-path: path('M38 0 H78 Q106 4 108 30 Q122 70 116 100 H0 Q-6 70 8 30 Q10 4 38 0Z'); }
   .pt.kneel.lay .head { animation: layHead 3.2s ease-in-out infinite; }
   .pt.kneel.lay .torso { animation: layBody 3.2s ease-in-out infinite; }
   @keyframes layHead { 0%, 20%, 100% { transform: none; } 45%, 65% { transform: translateY(52px) scale(.9); } }
@@ -700,11 +721,13 @@
     return el;
   };
   function figure(person) {
-    const el = div('pt walking',
+    // Áo tràng lam hoặc nâu, cố định theo từng người
+    const hash = [...person.username].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 0);
+    const el = div(`pt walking${Math.abs(hash) % 3 === 0 ? ' nau' : ''}`,
       div('item'),
       div('fig',
         avatarEl(person, 'head'),
-        div('torso', div('arm l'), div('robe'), div('arm r')),
+        div('torso', div('robe'), div('collar'), div('beads'), div('arm-wrap l', div('arm'), div('hand')), div('arm-wrap r', div('arm'), div('hand'))),
         div('legs', div('leg l'), div('leg r')),
       ),
       Object.assign(document.createElement('div'), { className: 'nm', textContent: person.nickname || person.username }),
