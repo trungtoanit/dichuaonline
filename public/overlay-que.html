@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overlay bản đồ quê</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;800;900&display=swap" rel="stylesheet">
+<style>
+  /* Thiết kế cho khung dọc 1080×1920, tự co giãn theo kích thước nguồn (LIVE Studio / OBS). */
+  :root {
+    --gold: #fbbf24;
+    --gold-soft: #fde68a;
+    --ink: #1c0606;
+  }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #140404; }
+  body { font-family: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif; color: #fff; }
+
+  #frame {
+    position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; transform-origin: 0 0; overflow: hidden;
+    background:
+      radial-gradient(ellipse 70% 45% at 55% 55%, rgba(185, 28, 28, .45), transparent 70%),
+      radial-gradient(ellipse 90% 60% at 50% 100%, rgba(120, 20, 10, .6), transparent 70%),
+      linear-gradient(#1f0606, #120303 60%, #1a0505);
+  }
+  /* bụi sáng lấp lánh trên nền */
+  #sparks { position: absolute; inset: 0; pointer-events: none; }
+  #sparks i {
+    position: absolute; width: 5px; height: 5px; border-radius: 50%; background: var(--gold);
+    box-shadow: 0 0 8px var(--gold); opacity: 0; animation: spark linear infinite;
+  }
+  @keyframes spark { 0% { opacity: 0; transform: translateY(0); } 15% { opacity: .9; } 100% { opacity: 0; transform: translateY(-160px); } }
+
+  /* ----- Tiêu đề ----- */
+  #title { position: absolute; left: 44px; top: 54px; z-index: 5; }
+  #title h1 {
+    margin: 0; font: 900 84px/1 "Be Vietnam Pro", sans-serif; letter-spacing: -1px;
+    background: linear-gradient(180deg, #fff7d6, var(--gold) 55%, #d97706);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 4px 0 #7c2d12) drop-shadow(0 10px 18px rgba(0, 0, 0, .6));
+  }
+  #title h1 small { display: block; font-size: 46px; font-weight: 800; margin-top: 6px; }
+  #leader { margin-top: 10px; font: 800 34px/1.2 "Be Vietnam Pro", sans-serif; color: #fff; text-shadow: 0 3px 10px rgba(0, 0, 0, .8); }
+  #leader { display: inline-flex; align-items: center; gap: 10px; padding: 6px 18px 6px 10px; border-radius: 999px; transform-origin: left center; }
+  #leader.has { background: linear-gradient(90deg, rgba(251, 191, 36, .28), rgba(251, 191, 36, 0)); box-shadow: inset 0 0 0 2px rgba(251, 191, 36, .35); animation: leadGlow 2.4s ease-in-out infinite; }
+  #leader .cup { display: inline-block; font-size: 44px; animation: cup 1.6s ease-in-out infinite; transform-origin: 50% 90%; }
+  /* tên tỉnh ánh vàng lướt qua */
+  #leader b {
+    font-size: 40px; font-weight: 900;
+    background: linear-gradient(100deg, #f59e0b 0%, #fde68a 20%, #fff 28%, #fde68a 36%, #f59e0b 55%, #f59e0b 100%);
+    background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: shine 2.6s linear infinite; text-shadow: none; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .8));
+  }
+  #leader.pop { animation: leadPop .9s cubic-bezier(.2, 1.8, .4, 1), leadGlow 2.4s ease-in-out infinite; }
+  @keyframes cup { 0%, 100% { transform: rotate(-8deg) translateY(0); } 50% { transform: rotate(8deg) translateY(-6px) scale(1.12); } }
+  @keyframes shine { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+  @keyframes leadGlow { 0%, 100% { box-shadow: inset 0 0 0 2px rgba(251, 191, 36, .35), 0 0 0 rgba(251, 191, 36, 0); } 50% { box-shadow: inset 0 0 0 2px rgba(251, 191, 36, .8), 0 0 28px rgba(251, 191, 36, .45); } }
+  @keyframes leadPop { 0% { transform: scale(.6); opacity: 0; } 60% { transform: scale(1.18); opacity: 1; } 100% { transform: none; } }
+  #how {
+    position: absolute; left: 44px; right: 44px; top: 330px; z-index: 5;
+    display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+  }
+  #how span {
+    padding: 8px 16px; border-radius: 999px; background: rgba(0, 0, 0, .55); border: 2px solid rgba(251, 191, 36, .6);
+    font: 700 24px/1.2 "Be Vietnam Pro", sans-serif; color: #fff; white-space: nowrap;
+  }
+  #how b { color: var(--gold); }
+  #chan {
+    position: absolute; right: 40px; top: 50px; z-index: 6; padding: 6px 14px; border-radius: 999px;
+    background: rgba(0, 0, 0, .55); font: 600 22px/1.2 "Be Vietnam Pro", sans-serif; color: #fca5a5;
+  }
+  #chan::before { content: "● "; }
+  #chan[data-state="connected"] { color: #86efac; }
+  body:not(.show-chan) #chan { display: none; } /* tên kênh chỉ hiện khi thêm ?kenh vào link (để kiểm tra kết nối) */
+  #chan[data-state="connected"] .wait { display: none; }
+
+  /* ----- Bản đồ 3D: SVG nghiêng bằng CSS, độ cao từng tỉnh vẽ bằng nhiều lớp chồng lên nhau ----- */
+  /* bản đồ phủ cả khung 1080×1920 (cảm giác tràn màn hình); viewBox đặt sao cho toàn cảnh nằm dưới tiêu đề */
+  #mapWrap { position: absolute; inset: 0; perspective: 2400px; z-index: 1; }
+  #map { width: 100%; height: 100%; transform: rotateX(24deg); transform-origin: 50% 100%; overflow: visible; }
+  /* máy quay: zoom vào tỉnh vừa có tương tác */
+  #cam { transition: transform 1s cubic-bezier(.3, .7, .2, 1); }
+  #map .top { stroke: rgba(253, 230, 138, .55); stroke-width: 1.3; stroke-linejoin: round; }
+  #map .lead .top { filter: drop-shadow(0 0 14px rgba(251, 191, 36, .95)); stroke: #fff7d6; stroke-width: 2; }
+  #map .flash .top { animation: flash .7s ease-out; }
+  @keyframes flash { 0% { filter: brightness(2.2); } 100% { filter: none; } }
+  #map text { font-family: "Be Vietnam Pro", sans-serif; paint-order: stroke; stroke: rgba(28, 6, 6, .9); stroke-linejoin: round; }
+  .lbl-name { font-weight: 800; font-size: 22px; fill: #fff; stroke-width: 5px; }
+  .lbl-score { font-weight: 900; font-size: 30px; fill: var(--gold); stroke-width: 6px; }
+  .lbl-fan { font-weight: 700; font-size: 18px; fill: #fde68a; stroke-width: 4px; }
+  .lead-lbl .lbl-name { font-size: 30px; }
+  .lead-lbl .lbl-score { font-size: 42px; }
+  .isl { fill: var(--gold-soft); }
+  .isl-name { font-weight: 700; font-size: 20px; fill: #fde68a; stroke-width: 4px; }
+  #ring { fill: none; stroke: var(--gold); stroke-width: 4; transform-box: fill-box; transform-origin: center; animation: ring 1.8s ease-out infinite; }
+  #ring2 { fill: none; stroke: rgba(251, 191, 36, .45); stroke-width: 3; transform-box: fill-box; transform-origin: center; animation: ring 1.8s .9s ease-out infinite; }
+  @keyframes ring { from { transform: scale(.55); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
+  .plus { font-weight: 900; font-size: 34px; fill: #fff; stroke-width: 6px; animation: rise 1.4s ease-out forwards; }
+  .plus.big { font-size: 46px; fill: var(--gold); }
+  .plus.gift { font-size: 54px; fill: #f9a8d4; }
+  @keyframes rise { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-110px); opacity: 0; } }
+  .bubble { animation: bubble 2.2s ease-out forwards; }
+  @keyframes bubble { 0% { transform: translateY(20px) scale(.4); opacity: 0; } 15% { transform: none; opacity: 1; } 80% { opacity: 1; } 100% { transform: translateY(-50px); opacity: 0; } }
+
+  /* ----- Bảng xếp hạng ----- */
+  /* cột phải: bảng xếp hạng và bảng quà xếp dọc, không đè nhau dù bảng xếp hạng cao thấp */
+  #rightCol { position: absolute; right: 26px; top: 640px; width: 380px; z-index: 5; display: flex; flex-direction: column; align-items: flex-end; gap: 18px; }
+  #board {
+    width: 100%; box-sizing: border-box;
+    background: linear-gradient(rgba(60, 10, 10, .92), rgba(30, 5, 5, .92)); border: 3px solid var(--gold);
+    border-radius: 22px; padding: 14px 16px 10px; box-shadow: 0 12px 36px rgba(0, 0, 0, .6);
+  }
+  #board h3 { margin: 0 0 8px; text-align: center; font: 900 28px/1.2 "Be Vietnam Pro", sans-serif; color: var(--gold); }
+  #board ol { list-style: none; margin: 0; padding: 0; }
+  #board li { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px; padding: 7px 4px; border-top: 1px solid rgba(251, 191, 36, .2); }
+  #board li .m { font-size: 30px; text-align: center; }
+  #board li .n { font: 800 26px/1.15 "Be Vietnam Pro", sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #board li .n small { display: block; font-size: 17px; font-weight: 600; color: #fca5a5; }
+  #board li .s { font: 900 30px/1 "Be Vietnam Pro", sans-serif; color: var(--gold); font-variant-numeric: tabular-nums; }
+  #board li.empty { display: block; padding: 10px 4px; text-align: center; font: 600 22px/1.4 "Be Vietnam Pro", sans-serif; color: #fecaca; }
+
+  /* ----- Bảng quà ----- */
+  #gifts {
+    width: 330px; box-sizing: border-box;
+    background: linear-gradient(rgba(60, 10, 10, .92), rgba(30, 5, 5, .92)); border: 3px solid #f472b6;
+    border-radius: 22px; padding: 12px 16px 8px; box-shadow: 0 12px 36px rgba(0, 0, 0, .6);
+    animation: giftBounce 6s ease-in-out infinite;
+  }
+  #gifts h3 { margin: 0 0 6px; text-align: center; white-space: nowrap; font: 900 24px/1.2 "Be Vietnam Pro", sans-serif; color: #f9a8d4; }
+  #gifts .row { display: flex; justify-content: space-between; align-items: center; padding: 6px 2px; border-top: 1px solid rgba(244, 114, 182, .25); font: 700 24px/1.2 "Be Vietnam Pro", sans-serif; }
+  #gifts .row b { color: var(--gold); font-size: 28px; font-weight: 900; }
+  #gifts .note { margin-top: 4px; text-align: center; font: 600 17px/1.3 "Be Vietnam Pro", sans-serif; color: #fecaca; }
+  @keyframes giftBounce { 0%, 86%, 100% { transform: none; } 90% { transform: scale(1.06) rotate(-2deg); } 94% { transform: scale(1.06) rotate(2deg); } }
+
+  /* ----- Ăn mừng mốc điểm ----- */
+  #mile {
+    position: absolute; left: 50%; top: 760px; z-index: 20; width: 900px; text-align: center; pointer-events: none;
+    transform: translateX(-50%) scale(.6); opacity: 0; transition: opacity .35s, transform .5s cubic-bezier(.2, 1.6, .4, 1);
+  }
+  #mile.show { opacity: 1; transform: translateX(-50%) scale(1); }
+  #mile .badge {
+    display: inline-block; padding: 26px 46px; border-radius: 34px;
+    background: linear-gradient(135deg, #fde68a, #f59e0b 50%, #b45309); color: #3b0a0a; border: 6px solid #fff7d6;
+    box-shadow: 0 0 60px rgba(251, 191, 36, .9), 0 18px 40px rgba(0, 0, 0, .6);
+  }
+  #mile .big { font: 900 96px/1 "Be Vietnam Pro", sans-serif; }
+  #mile .sub { font: 800 44px/1.2 "Be Vietnam Pro", sans-serif; margin-top: 8px; }
+  .confetti { position: absolute; width: 14px; height: 22px; border-radius: 3px; z-index: 19; pointer-events: none; animation: confetti 2.6s ease-in forwards; }
+  @keyframes confetti { to { transform: translate(var(--dx), 1100px) rotate(var(--r)); opacity: .2; } }
+
+  /* ----- Người vừa nhận quê ----- */
+  #claims { position: absolute; left: 30px; top: 1010px; width: 360px; z-index: 5; display: flex; flex-direction: column; gap: 10px; }
+  .claim {
+    display: flex; align-items: center; gap: 12px; padding: 8px 16px 8px 8px; border-radius: 999px;
+    background: rgba(0, 0, 0, .7); border: 2px solid rgba(251, 191, 36, .7);
+    font: 700 24px/1.2 "Be Vietnam Pro", sans-serif; animation: claimIn .4s ease-out;
+  }
+  .claim b { color: var(--gold); }
+  .claim .av, .claim img { width: 50px; height: 50px; border-radius: 50%; flex: none; object-fit: cover; background: #b45309; display: grid; place-items: center; font-weight: 800; }
+  .claim .t { overflow: hidden; }
+  .claim .t div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .claim.out { opacity: 0; transform: translateX(-30px); transition: .4s; }
+  @keyframes claimIn { from { opacity: 0; transform: translateX(-40px); } }
+</style>
+</head>
+<body>
+<div id="frame">
+  <div id="sparks"></div>
+  <div id="title">
+    <h1>BẢN ĐỒ<small>QUÊ HƯƠNG</small></h1>
+    <div id="leader">Bình luận tên quê để tham gia!</div>
+  </div>
+  <div id="chan" data-state="idle"></div>
+  <div id="how"><span>💬 Bình luận <b>tên tỉnh</b> để nhận quê</span><span>❤️ Thả tim <b>+1 điểm</b></span><span>🎁 1 xu <b>+5 điểm</b></span></div>
+  <div id="mapWrap"><svg id="map" viewBox="-43 -322 1192 2119" aria-label="Bản đồ Việt Nam"></svg></div>
+  <div id="rightCol">
+  <div id="board"><h3>🏆 QUÊ AI MẠNH NHẤT</h3><ol id="boardList"></ol></div>
+  <div id="gifts">
+    <h3>🎁 TẶNG QUÀ CHO QUÊ</h3>
+    <div class="row"><span>🌹 1 xu</span><b>+5 điểm</b></div>
+    <div class="row"><span>🎁 5 xu</span><b>+25 điểm</b></div>
+    <div class="row"><span>💎 10 xu</span><b>+50 điểm</b></div>
+    <div class="note">Mốc 50 · 100 · 500 điểm: pháo hoa 🎉</div>
+  </div>
+  </div>
+  <div id="mile"><div class="badge"><div class="big" id="mileBig"></div><div class="sub" id="mileSub"></div></div></div>
+  <div id="claims"></div>
+</div>
+
+<script type="module">
+  import { connectWS, initials } from '/ws-client.js';
+  import { PROVINCE_SHAPES, ISLANDS } from '/vn-map.js';
+  import { PROVINCE_BY_ID } from '/provinces.js';
+
+  const $ = (id) => document.getElementById(id);
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent = null) => {
+    const e = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    if (parent) parent.appendChild(e);
+    return e;
+  };
+  const fmt = new Intl.NumberFormat('vi-VN');
+  const nameOf = (id) => PROVINCE_BY_ID.get(id)?.name ?? id;
+
+  // ---------- Co giãn khung 1080×1920 theo nguồn; ?an-toan thu nhỏ để điện thoại màn dài không cắt hai mép ----------
+  const params = new URLSearchParams(location.search);
+  if (params.has('kenh')) document.body.classList.add('show-chan');
+  const safeParam = params.get('an-toan');
+  const safeScale = safeParam === null ? 1 : Math.min(1, Math.max(0.6, parseFloat(safeParam) || 0.82));
+  const frame = $('frame');
+  const fit = () => {
+    const { clientWidth: w, clientHeight: h } = document.documentElement;
+    const fitMode = params.get('fit') === 'contain' ? Math.min : Math.max;
+    const s = fitMode(w / 1080, h / 1920) * safeScale;
+    frame.style.transform = `translate(${(w - 1080 * s) / 2}px, ${(h - 1920 * s) / 2}px) scale(${s})`;
+  };
+  new ResizeObserver(fit).observe(document.documentElement);
+  fit();
+
+  for (let i = 0; i < 40; i++) {
+    const s = document.createElement('i');
+    s.style.cssText = `left:${Math.random() * 1080}px;top:${300 + Math.random() * 1600}px;animation-duration:${4 + Math.random() * 6}s;animation-delay:${-Math.random() * 10}s;transform:scale(${0.4 + Math.random()})`;
+    $('sparks').appendChild(s);
+  }
+
+  // ---------- Vẽ bản đồ ----------
+  const svg = $('map');
+  const defs = el('defs', {}, svg);
+  const clip = el('clipPath', { id: 'avClip', clipPathUnits: 'objectBoundingBox' }, defs);
+  el('circle', { cx: 0.5, cy: 0.5, r: 0.5 }, clip);
+  for (const p of PROVINCE_SHAPES) el('path', { id: `p-${p.id}`, d: p.d }, defs);
+  el('path', { id: 'vn-all', d: PROVINCE_SHAPES.map((p) => p.d).join('') }, defs);
+
+  const cam = el('g', { id: 'cam' }, svg);
+  // Phiến đế: cả nước dày vài lớp màu tối
+  const slab = el('g', {}, cam);
+  for (let i = 9; i >= 1; i--) el('use', { href: '#vn-all', transform: `translate(0 ${i * 2.2})`, fill: i > 6 ? '#0d0202' : '#2a0707' }, slab);
+
+  const LAYERS = 16;     // số lớp tạo thành mặt bên của mỗi tỉnh khi nổi lên
+  const H_MIN = 8, H_MAX = 64;
+  const provinceLayer = el('g', {}, cam);
+  const prov = new Map(); // id -> { g, sides[], top, cur, target, shape }
+  for (const shape of PROVINCE_SHAPES) {
+    const g = el('g', { 'data-id': shape.id }, provinceLayer);
+    const sides = [];
+    for (let j = 0; j < LAYERS; j++) sides.push(el('use', { href: `#p-${shape.id}`, visibility: 'hidden' }, g));
+    const top = el('use', { href: `#p-${shape.id}`, class: 'top' }, g);
+    prov.set(shape.id, { g, sides, top, cur: 0, target: 0, shape });
+  }
+
+  // Quần đảo Hoàng Sa, Trường Sa (thuộc Đà Nẵng, Khánh Hòa)
+  const islLayer = el('g', {}, cam);
+  for (const isl of ISLANDS) {
+    for (const [x, y] of isl.dots) el('circle', { cx: x, cy: y, r: 3.2, class: 'isl' }, islLayer);
+    const t = el('text', { x: isl.lx, y: isl.ly, 'text-anchor': 'middle', class: 'isl-name' }, islLayer);
+    t.textContent = isl.name;
+  }
+
+  const ringG = el('g', { visibility: 'hidden' }, cam);
+  el('ellipse', { id: 'ring', cx: 0, cy: 0, rx: 120, ry: 80 }, ringG);
+  el('ellipse', { id: 'ring2', cx: 0, cy: 0, rx: 120, ry: 80 }, ringG);
+  const labelLayer = el('g', {}, cam);
+  const fxLayer = el('g', {}, cam);
+
+  // ---------- Trạng thái ----------
+  let state = {}; // id -> { score, people, fan }
+  let leaderId = null;
+  let announceLead = false; // chỉ đọc "lội ngược dòng" khi điểm thay đổi trực tiếp, không đọc lúc tải trạng thái
+
+  // Màu theo độ "nóng": 0 điểm đỏ thẫm, càng nhiều điểm càng sáng, dẫn đầu vàng kim
+  const STOPS = [[0, [92, 20, 20]], [0.05, [127, 29, 29]], [0.35, [200, 30, 30]], [0.7, [234, 88, 12]], [1, [251, 191, 36]]];
+  function heat(r) {
+    let i = 1;
+    while (i < STOPS.length - 1 && r > STOPS[i][0]) i++;
+    const [r0, c0] = STOPS[i - 1], [r1, c1] = STOPS[i];
+    const t = Math.min(1, Math.max(0, (r - r0) / (r1 - r0 || 1)));
+    return c0.map((v, k) => Math.round(v + (c1[k] - v) * t));
+  }
+  const rgb = (c, k = 1) => `rgb(${c.map((v) => Math.round(v * k)).join(',')})`;
+
+  function maxScore() {
+    let m = 0;
+    for (const s of Object.values(state)) m = Math.max(m, s.score || 0);
+    return m;
+  }
+
+  function applyColorsAndTargets() {
+    const max = maxScore();
+    const ranked = Object.entries(state).filter(([, s]) => s.score > 0).sort((a, b) => b[1].score - a[1].score);
+    const prevLeader = leaderId;
+    leaderId = ranked[0]?.[0] ?? null;
+    // tỉnh khác vượt lên dẫn đầu (bỏ qua lúc mới tải trang / xoá điểm)
+    if (announceLead && prevLeader && leaderId && leaderId !== prevLeader && (state[leaderId]?.score ?? 0) > (state[prevLeader]?.score ?? 0)) {
+      voiceComeback(leaderId, prevLeader);
+    }
+    for (const [id, p] of prov) {
+      const score = state[id]?.score || 0;
+      const r = max ? score / max : 0;
+      p.target = score > 0 ? H_MIN + (H_MAX - H_MIN) * Math.sqrt(r) : 0;
+      const c = score > 0 ? heat(Math.max(0.06, r)) : STOPS[0][1];
+      p.top.setAttribute('fill', rgb(c));
+      const side = rgb(c, 0.5);
+      for (const s of p.sides) s.setAttribute('fill', side);
+      p.g.classList.toggle('lead', id === leaderId);
+    }
+    animate();
+    renderBoard(ranked);
+    renderLabels(ranked);
+  }
+
+  // Nâng / hạ tỉnh mượt: dịch dần độ cao hiện tại tới độ cao đích
+  let raf = 0;
+  function animate() {
+    if (raf) return;
+    raf = requestAnimationFrame(step);
+  }
+  function step() {
+    raf = 0;
+    let moving = false;
+    for (const p of prov.values()) {
+      if (Math.abs(p.target - p.cur) < 0.3) {
+        if (p.cur === p.target) continue;
+        p.cur = p.target;
+      } else {
+        p.cur += (p.target - p.cur) * 0.14;
+        moving = true;
+      }
+      placeProvince(p);
+    }
+    placeLabels();
+    if (moving) animate();
+  }
+  function placeProvince(p) {
+    const h = p.cur;
+    p.sides.forEach((s, j) => {
+      if (h < 0.5) return s.setAttribute('visibility', 'hidden');
+      s.setAttribute('visibility', 'visible');
+      s.setAttribute('transform', `translate(0 ${(-h * j / LAYERS).toFixed(1)})`);
+    });
+    p.top.setAttribute('transform', `translate(0 ${(-h).toFixed(1)})`);
+  }
+
+  // ---------- Nhãn tỉnh có điểm (10 tỉnh cao nhất) ----------
+  const LABEL_MAX = 10;
+  let labels = []; // { id, g }
+  function renderLabels(ranked) {
+    labelLayer.replaceChildren();
+    labels = ranked.slice(0, LABEL_MAX).map(([id, s], i) => {
+      const g = el('g', { class: i === 0 ? 'lead-lbl' : '' }, labelLayer);
+      const name = el('text', { 'text-anchor': 'middle', class: 'lbl-name', y: i === 0 ? -44 : -34 }, g);
+      name.textContent = nameOf(id);
+      const score = el('text', { 'text-anchor': 'middle', class: 'lbl-score', y: 0 }, g);
+      score.textContent = fmt.format(s.score);
+      if (i === 0 && s.fan) {
+        const fan = el('text', { 'text-anchor': 'middle', class: 'lbl-fan', y: 26 }, g);
+        fan.textContent = `🥇 ${s.fan.nickname}`.slice(0, 24);
+      }
+      return { id, g };
+    });
+    placeLabels();
+  }
+  function placeLabels() {
+    for (const { id, g } of labels) {
+      const p = prov.get(id);
+      g.setAttribute('transform', `translate(${p.shape.cx} ${(p.shape.cy - p.cur - 14).toFixed(1)})`);
+    }
+    if (leaderId) {
+      const p = prov.get(leaderId);
+      ringG.setAttribute('visibility', 'visible');
+      ringG.setAttribute('transform', `translate(${p.shape.cx} ${(p.shape.cy - p.cur).toFixed(1)})`);
+    } else ringG.setAttribute('visibility', 'hidden');
+    showLeader();
+  }
+  // Dòng "🏆 … đang dẫn đầu": chỉ dựng lại khi đổi tỉnh (để hiệu ứng chạy liên tục), đổi tỉnh thì nảy lên
+  let shownLeader;
+  function showLeader() {
+    if (shownLeader === leaderId) return;
+    const first = shownLeader === undefined;
+    shownLeader = leaderId;
+    const box = $('leader');
+    box.replaceChildren();
+    box.classList.toggle('has', Boolean(leaderId));
+    if (!leaderId) return void (box.textContent = 'Bình luận tên quê để tham gia!');
+    box.append(Object.assign(document.createElement('span'), { className: 'cup', textContent: '🏆' }),
+      Object.assign(document.createElement('b'), { textContent: nameOf(leaderId) }), ' đang dẫn đầu');
+    if (!first) {
+      box.classList.remove('pop');
+      void box.offsetWidth;
+      box.classList.add('pop');
+    }
+  }
+
+  // ---------- Bảng xếp hạng ----------
+  const MEDALS = ['🥇', '🥈', '🥉', '4', '5'];
+  function renderBoard(ranked) {
+    const list = $('boardList');
+    list.replaceChildren();
+    if (!ranked.length) {
+      const li = document.createElement('li');
+      li.className = 'empty';
+      li.textContent = 'Chưa có quê nào có điểm. Bình luận tên quê rồi thả tim nhé!';
+      return list.appendChild(li);
+    }
+    ranked.slice(0, 5).forEach(([id, s], i) => {
+      const li = document.createElement('li');
+      const m = Object.assign(document.createElement('span'), { className: 'm', textContent: MEDALS[i] });
+      const n = Object.assign(document.createElement('span'), { className: 'n', textContent: nameOf(id) });
+      n.appendChild(Object.assign(document.createElement('small'), { textContent: `👥 ${fmt.format(s.people || 0)} người${s.fan ? ` · ${s.fan.nickname}` : ''}` }));
+      const sc = Object.assign(document.createElement('span'), { className: 's', textContent: fmt.format(s.score) });
+      li.append(m, n, sc);
+      list.appendChild(li);
+    });
+  }
+
+  // Cập nhật nhãn/bảng tối đa ~4 lần/giây khi tim về dồn dập
+  let renderTimer = 0;
+  const renderSoon = () => { if (!renderTimer) renderTimer = setTimeout(() => { renderTimer = 0; applyColorsAndTargets(); }, 250); };
+
+  // ---------- Hiệu ứng ----------
+  const FX_MAX = 40;
+  const lastBubble = new Map(); // username -> lúc hiện ảnh gần nhất
+  function plusFx(id, add, member, isGift = false) {
+    const p = prov.get(id);
+    if (!p) return;
+    if (fxLayer.childElementCount > FX_MAX) fxLayer.firstChild.remove();
+    const x = p.shape.cx + (Math.random() - 0.5) * 50;
+    const y = p.shape.cy - p.cur - 30 - Math.random() * 20;
+    const g = el('g', { transform: `translate(${x.toFixed(1)} ${y.toFixed(1)})` }, fxLayer);
+    const t = el('text', { 'text-anchor': 'middle', class: isGift ? 'plus gift' : add >= 10 ? 'plus big' : 'plus' }, g);
+    t.textContent = isGift ? `🎁 +${add}` : `+${add}`;
+    setTimeout(() => g.remove(), 1500);
+    p.g.classList.remove('flash');
+    void p.g.getBoundingClientRect();
+    p.g.classList.add('flash');
+
+    // ảnh đại diện người thả tim bay lên cạnh tỉnh (mỗi người tối đa 1 lần / 4 giây)
+    const now = Date.now();
+    if (member?.avatar && now - (lastBubble.get(member.username) ?? 0) > 4000) {
+      lastBubble.set(member.username, now);
+      const bx = p.shape.cx + (Math.random() < 0.5 ? -1 : 1) * (40 + Math.random() * 30);
+      const bg = el('g', { transform: `translate(${bx.toFixed(1)} ${(y - 30).toFixed(1)})` }, fxLayer);
+      const inner = el('g', { class: 'bubble' }, bg);
+      el('circle', { r: 31, fill: '#fbbf24' }, inner);
+      el('image', { href: member.avatar, x: -28, y: -28, width: 56, height: 56, 'clip-path': 'url(#avClip)', preserveAspectRatio: 'xMidYMid slice' }, inner);
+      setTimeout(() => bg.remove(), 2300);
+    }
+  }
+
+  function claimToast(member, id, changed) {
+    const box = $('claims');
+    const div = document.createElement('div');
+    div.className = 'claim';
+    if (member.avatar) div.appendChild(Object.assign(document.createElement('img'), { src: member.avatar, alt: '' }));
+    else div.appendChild(Object.assign(document.createElement('span'), { className: 'av', textContent: initials(member.nickname) }));
+    const t = document.createElement('div');
+    t.className = 't';
+    t.appendChild(Object.assign(document.createElement('div'), { textContent: member.nickname }));
+    const line = document.createElement('div');
+    line.append(changed ? '🏠 về quê ' : '🏠 ', Object.assign(document.createElement('b'), { textContent: nameOf(id) }));
+    t.appendChild(line);
+    div.appendChild(t);
+    box.prepend(div);
+    while (box.children.length > 4) box.lastChild.remove();
+    setTimeout(() => { div.classList.add('out'); setTimeout(() => div.remove(), 450); }, 6000);
+    const p = prov.get(id);
+    if (p) { p.g.classList.remove('flash'); void p.g.getBoundingClientRect(); p.g.classList.add('flash'); }
+  }
+
+  // ---------- Máy quay: zoom vào tỉnh vừa tương tác, im lặng một lúc thì lùi về toàn cảnh ----------
+  const VIEW_CX = 553, VIEW_CY = 820; // điểm trên khung hình (toạ độ viewBox) đặt tỉnh được zoom
+  const ZOOM = 2.4, HOLD_MS = 2000, BACK_MS = 3500;
+  let camId = null, camAt = 0, camPending = null, camPendingTimer = 0, camBackTimer = 0;
+  // Âm thanh vui khi zoom vào tỉnh (tạo bằng Web Audio, không cần file). ?am-thanh=0 để tắt
+  const soundOn = params.get('am-thanh') !== '0' && !params.has('preview'); // xem trước trên dashboard thì im lặng
+  let actx = null;
+  const JINGLES = [
+    [[523, 0], [659, 0.09], [784, 0.18], [1047, 0.27]],          // đô-mi-son-đố đi lên
+    [[784, 0], [988, 0.08], [1175, 0.16], [1568, 0.26]],
+    [[659, 0], [523, 0.08], [784, 0.16], [1047, 0.24], [1319, 0.34]],
+  ];
+  function jingle() {
+    if (!soundOn) return;
+    try {
+      actx ??= new AudioContext();
+      if (actx.state === 'suspended') actx.resume();
+      const t0 = actx.currentTime + 0.02;
+      const out = actx.createGain();
+      out.gain.value = 0.22;
+      out.connect(actx.destination);
+      // tiếng "vút" trượt lên mở màn
+      const sw = actx.createOscillator(), swg = actx.createGain();
+      sw.type = 'sine';
+      sw.frequency.setValueAtTime(300, t0);
+      sw.frequency.exponentialRampToValueAtTime(1400, t0 + 0.18);
+      swg.gain.setValueAtTime(0.0001, t0);
+      swg.gain.exponentialRampToValueAtTime(0.35, t0 + 0.03);
+      swg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
+      sw.connect(swg).connect(out);
+      sw.start(t0);
+      sw.stop(t0 + 0.22);
+      // chuỗi nốt nhảy vui
+      for (const [f, dt] of JINGLES[Math.floor(Math.random() * JINGLES.length)]) {
+        const t = t0 + 0.16 + dt;
+        for (const [type, mul, vol] of [['triangle', 1, 0.5], ['sine', 2, 0.15]]) {
+          const o = actx.createOscillator(), g = actx.createGain();
+          o.type = type;
+          o.frequency.setValueAtTime(f * mul, t);
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(vol, t + 0.015);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+          o.connect(g).connect(out);
+          o.start(t);
+          o.stop(t + 0.25);
+        }
+      }
+    } catch {}
+  }
+
+  function setCam(id) {
+    camId = id;
+    camAt = Date.now();
+    const p = id && prov.get(id);
+    if (!p) return void (cam.style.transform = '');
+    jingle();
+    // giữ tỉnh không sát mép: tâm zoom không ra ngoài bản đồ quá nhiều
+    const x = p.shape.cx, y = p.shape.cy - p.target;
+    cam.style.transform = `translate(${VIEW_CX}px, ${VIEW_CY}px) scale(${ZOOM}) translate(${-x}px, ${-y}px)`;
+  }
+  function focusProvince(id) {
+    clearTimeout(camBackTimer);
+    camBackTimer = setTimeout(() => setCam(null), BACK_MS);
+    if (id === camId) return;
+    // đang xem tỉnh khác chưa đủ lâu: chờ rồi mới chuyển sang tỉnh tương tác gần nhất
+    const wait = HOLD_MS - (Date.now() - camAt);
+    if (camId && wait > 0) {
+      camPending = id;
+      camPendingTimer ||= setTimeout(() => {
+        camPendingTimer = 0;
+        const next = camPending;
+        camPending = null;
+        if (next) focusProvince(next);
+      }, wait);
+      return;
+    }
+    setCam(id);
+  }
+
+  // ---------- Ăn mừng khi một tỉnh chạm mốc điểm ----------
+  const mileQueue = [];
+  let mileBusy = false;
+  function celebrate(id, milestone) {
+    mileQueue.push([id, milestone]);
+    if (!mileBusy) nextMile();
+  }
+  function nextMile() {
+    const item = mileQueue.shift();
+    if (!item) return void (mileBusy = false);
+    mileBusy = true;
+    const [id, milestone] = item;
+    $('mileBig').textContent = `🎉 ${fmt.format(milestone)} ĐIỂM 🎉`;
+    $('mileSub').textContent = `${nameOf(id)} cán mốc!`;
+    $('mile').classList.add('show');
+    fanfare();
+    const colors = ['#fbbf24', '#f472b6', '#22d3ee', '#a3e635', '#f87171', '#fff'];
+    for (let i = 0; i < 90; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.cssText = `left:${540 + (Math.random() - 0.5) * 300}px;top:${700 + Math.random() * 80}px;background:${colors[i % colors.length]};`
+        + `--dx:${(Math.random() - 0.5) * 1100}px;--r:${Math.random() * 900}deg;animation-delay:${Math.random() * 0.3}s`;
+      frame.appendChild(c);
+      setTimeout(() => c.remove(), 3000);
+    }
+    setTimeout(() => {
+      $('mile').classList.remove('show');
+      setTimeout(nextMile, 500);
+    }, 3200);
+  }
+  // kèn chiến thắng: hợp âm đi lên rồi ngân dài
+  function fanfare() {
+    if (!soundOn) return;
+    try {
+      actx ??= new AudioContext();
+      if (actx.state === 'suspended') actx.resume();
+      const t0 = actx.currentTime + 0.05;
+      const out = actx.createGain();
+      out.gain.value = 0.2;
+      out.connect(actx.destination);
+      const notes = [[392, 0, 0.14], [523, 0.15, 0.14], [659, 0.3, 0.14], [784, 0.45, 0.9], [1047, 0.45, 0.9], [659, 0.45, 0.9]];
+      for (const [f, dt, len] of notes) {
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(f, t0 + dt);
+        g.gain.setValueAtTime(0.0001, t0 + dt);
+        g.gain.exponentialRampToValueAtTime(0.25, t0 + dt + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + len);
+        const lp = actx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.value = 2200;
+        o.connect(lp).connect(g).connect(out);
+        o.start(t0 + dt);
+        o.stop(t0 + dt + len + 0.05);
+      }
+    } catch {}
+  }
+
+  function setQue(que) {
+    if (!que) return;
+    state = structuredClone(que.provinces ?? {});
+    const chan = $('chan');
+    chan.dataset.state = que.status;
+    chan.textContent = `@${que.channel}${que.demo ? ' · giả lập' : ''}`;
+    if (que.status !== 'connected' && !que.demo) chan.append(Object.assign(document.createElement('span'), { className: 'wait', textContent: ' · chờ LIVE' }));
+    announceLead = false;
+    applyColorsAndTargets();
+    announceLead = true;
+  }
+
+  // ---------- Giọng đọc tiếng Việt: máy chủ tạo file giọng (/tts), dự phòng Web Speech của trình duyệt. ?doc=0 để tắt ----------
+  // Ưu tiên: lội ngược dòng (3) > cảm ơn quà (2) > chào thành viên mới (1) > nhắc tỉnh dẫn đầu (0)
+  const voiceOn = params.get('doc') !== '0' && !params.has('preview');
+  const webSpeech = 'speechSynthesis' in window;
+  const VOICE_QUEUE_MAX = 4;
+  let viVoice = null;
+  const pickVoice = () => {
+    const vs = speechSynthesis.getVoices().filter((v) => /^vi/i.test(v.lang));
+    viVoice = vs.find((v) => /linh|google/i.test(v.name)) ?? vs[0] ?? null;
+  };
+  if (voiceOn && webSpeech) {
+    pickVoice();
+    speechSynthesis.onvoiceschanged = pickVoice;
+  }
+  const voiceQueue = []; // { text, pri, key, data }
+  let speaking = false, voiceWatchdog = 0;
+  // Tên đọc được: bỏ emoji/ký tự lạ, cắt ngắn
+  const sayName = (n) => String(n ?? '').normalize('NFC').replace(/[^\p{L}\p{N}\s.]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 24) || 'bạn';
+  function say(text, pri, key = null, merge = null) {
+    if (!voiceOn) return;
+    const same = key && voiceQueue.find((v) => v.key === key);
+    if (same) {
+      if (merge) merge(same);
+      else same.text = text;
+      return;
+    }
+    if (voiceQueue.length >= VOICE_QUEUE_MAX) {
+      const lowest = voiceQueue.reduce((a, b) => (b.pri < a.pri ? b : a));
+      if (lowest.pri >= pri) return;
+      voiceQueue.splice(voiceQueue.indexOf(lowest), 1);
+    }
+    voiceQueue.push({ text, pri, key });
+    voiceQueue.sort((a, b) => b.pri - a.pri);
+    speakNext();
+  }
+  function speakNext() {
+    if (speaking || !voiceQueue.length) return;
+    const item = voiceQueue.shift();
+    const text = typeof item.text === 'function' ? item.text() : item.text;
+    speaking = true;
+    const done = () => {
+      if (!speaking) return;
+      speaking = false;
+      clearTimeout(voiceWatchdog);
+      setTimeout(speakNext, 350);
+    };
+    // câu dài cũng không quá 15 giây: tự chuyển câu nếu trình duyệt không báo phát xong
+    voiceWatchdog = setTimeout(() => { audio.pause(); if (webSpeech) speechSynthesis.cancel(); done(); }, 15000);
+    const audio = new Audio(`/tts?text=${encodeURIComponent(text)}`);
+    audio.volume = 1;
+    audio.onended = done;
+    let fellBack = false;
+    audio.onerror = () => {
+      // máy chủ không tạo được giọng (không phải macOS): thử giọng của trình duyệt
+      if (fellBack) return;
+      fellBack = true;
+      if (!webSpeech || !viVoice) return done();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'vi-VN';
+      u.voice = viVoice;
+      u.rate = 1.08;
+      u.onend = done;
+      u.onerror = done;
+      speechSynthesis.speak(u);
+    };
+    audio.play().catch(() => audio.onerror());
+  }
+
+  const GIFT_NAMES = { Rose: 'hoa hồng', Rosa: 'bó hoa Rosa', 'Finger Heart': 'trái tim', TikTok: 'quà TikTok', GG: 'quà GG', 'Ice Cream Cone': 'cây kem', Perfume: 'nước hoa', Doughnut: 'bánh donut' };
+  const giftWord = (g) => GIFT_NAMES[g] ?? (!g || /quà lạ/i.test(g) ? 'quà' : g);
+
+  function voiceGift(msg) {
+    const key = `gift:${msg.member.username}`;
+    const data = { nick: sayName(msg.member.nickname), gift: giftWord(msg.gift), count: msg.count || 1, points: msg.points || 0, id: msg.id };
+    const text = () => data.id
+      ? `Cảm ơn ${data.nick} đã tặng ${data.count > 1 ? `${data.count} ` : ''}${data.gift} cho ${nameOf(data.id)}, cộng ${data.points} điểm!`
+      : `Cảm ơn ${data.nick} đã tặng ${data.gift}! Bình luận tên quê để được cộng điểm nhé.`;
+    // cùng người tặng tiếp trong lúc chờ đọc: gộp thành một câu
+    say(text, 2, key, (item) => {
+      const prev = item.data;
+      if (prev.gift === data.gift) prev.count += data.count;
+      else prev.gift = 'quà';
+      prev.points += data.points;
+      prev.id = data.id ?? prev.id;
+    });
+    const item = voiceQueue.find((v) => v.key === key);
+    if (item) item.data ??= data;
+  }
+  const WELCOME = [
+    (n, p) => `Chào mừng ${n} đến từ ${p}!`,
+    (n, p) => `${p} có thêm thành viên mới, chào ${n}!`,
+    (n, p) => `Xin chào ${n}, đồng hương ${p} ơi!`,
+  ];
+  function voiceWelcome(member, id) {
+    const f = WELCOME[Math.floor(Math.random() * WELCOME.length)];
+    say(f(sayName(member.nickname), nameOf(id)), 1, `welcome:${member.username}`);
+  }
+  let lastComebackAt = 0;
+  function voiceComeback(newId, oldId) {
+    if (Date.now() - lastComebackAt < 8000) return;
+    lastComebackAt = Date.now();
+    say(`Lội ngược dòng! ${nameOf(newId)} vượt qua ${nameOf(oldId)}, vươn lên dẫn đầu!`, 3, 'comeback');
+  }
+  const LEAD_LINES = [
+    (p, n) => `${p} đang dẫn đầu với ${n} điểm. Các tỉnh khác cố lên!`,
+    (p, n) => `Hiện tại ${p} dẫn đầu, ${n} điểm. Thả tim cho quê mình nào!`,
+    (p, n) => `${p} vẫn đang đứng đầu bảng với ${n} điểm!`,
+  ];
+  setInterval(() => {
+    if (!leaderId) return;
+    const f = LEAD_LINES[Math.floor(Math.random() * LEAD_LINES.length)];
+    say(() => f(nameOf(leaderId), fmt.format(state[leaderId]?.score ?? 0)), 0, 'lead');
+  }, 75000);
+
+  // ---------- Kết nối máy chủ ----------
+  connectWS((msg) => {
+    switch (msg.type) {
+      case 'hello': setQue(msg.que); break;
+      case 'queState': setQue(msg.que); break;
+      case 'queClaim': {
+        const s = (state[msg.id] ??= { score: 0, people: 0, fan: null });
+        if (msg.changed) s.people += 1;
+        claimToast(msg.member, msg.id, msg.changed);
+        if (msg.isNew) voiceWelcome(msg.member, msg.id);
+        focusProvince(msg.id);
+        renderSoon();
+        break;
+      }
+      case 'queGift': voiceGift(msg); break;
+      case 'queLike': {
+        const s = (state[msg.id] ??= { score: 0, people: 0, fan: null });
+        s.score = msg.total;
+        s.fan = msg.fan;
+        plusFx(msg.id, msg.add, msg.member, msg.kind === 'gift');
+        focusProvince(msg.id);
+        if (msg.milestones?.length) celebrate(msg.id, msg.milestones.at(-1));
+        renderSoon();
+        break;
+      }
+    }
+  });
+</script>
+</body>
+</html>

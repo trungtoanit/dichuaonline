@@ -11,6 +11,14 @@ const TEXTS = [
   'Chốt 1 cái nha',
   'Xin chào cả nhà 👋',
   'Freeship không shop ơi?',
+  // nhận quê cho overlay bản đồ
+  'Quê Nghệ An nè cả nhà',
+  'Thanh Hóa điểm danh',
+  'Hà Nội có mặt',
+  'Sài Gòn đây',
+  'quê mình Đắk Lắk',
+  'Cà Mau nè',
+  'Quảng Ngãi ơi',
   // các dòng dưới để thử bộ lọc
   'Giá bao nhiêu vậy shop?',
   'aaaaaaaaaaaaaaa',

@@ -29,6 +29,19 @@
     <p id="statusMsg" class="status-msg">Chưa kết nối</p>
   </form>
 
+  <form id="queForm" class="panel connect">
+    <label class="grow">
+      <span>🗺 Kênh thứ hai (bản đồ quê) — chạy song song kênh trên</span>
+      <input id="queUser" placeholder="@tenkenh" autocomplete="off" spellcheck="false">
+    </label>
+    <div class="buttons">
+      <span id="quePill" class="pill">Chưa kết nối</span>
+      <button type="submit" class="primary">Kết nối</button>
+      <button type="button" id="queDisconnectBtn">Ngắt</button>
+    </div>
+    <p id="queStatusMsg" class="status-msg">Chưa kết nối</p>
+  </form>
+
   <section class="stats">
     <div class="stat"><span>⏱ Thời gian LIVE</span><b id="sLiveTime">--:--</b></div>
     <div class="stat"><span>Bình luận nhận được</span><b id="sReceived">0</b></div>
@@ -79,6 +92,7 @@
               <option value="/overlay/chua">Chùa (khung, giữa trong suốt)</option>
               <option value="/overlay/chua?nen">Chùa (cảnh nền đầy đủ)</option>
               <option value="/overlay/nha-may">Nhà máy carton</option>
+              <option value="/overlay/que">Bản đồ quê 3D</option>
             </select>
             <select id="frameSel" class="small" aria-label="Khung hình">
               <option value="1080x1920">Dọc 9:16 (TikTok)</option>
@@ -86,6 +100,7 @@
             </select>
             <button type="button" id="clearBtn" class="small">Xóa màn hình</button>
             <button type="button" id="clearMembersBtn" class="small">Xóa DS Phật tử</button>
+            <button type="button" id="queResetBtn" class="small" title="Xóa điểm các tỉnh trên bản đồ quê để chơi ván mới (giữ quê mọi người đã nhận)">Xóa điểm bản đồ</button>
             <button type="button" id="reloadBtn" class="small" title="Tải lại overlay đang chạy trong OBS / LIVE Studio">↻ Tải lại overlay</button>
             <button type="button" id="previewBtn" class="small" title="Xem trước chạy cả một overlay nữa trong Chrome, khá nặng: tắt khi đang LIVE">👁 Xem trước</button>
           </div>

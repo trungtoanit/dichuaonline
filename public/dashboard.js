@@ -35,6 +35,7 @@ function onMessage(msg) {
       setSettings(msg.settings);
       demo = msg.demo;
       setStatus(msg.status);
+      setQueChannel(msg.que);
       // Lấy username từ máy chủ, không dùng giá trị trình duyệt tự khôi phục khi tải lại trang
       if (document.activeElement !== $('username')) $('username').value = msg.settings.username;
       // Mở / F5 dashboard thì tự kết nối nếu chưa kết nối (hoặc lần trước bị lỗi)
@@ -52,6 +53,7 @@ function onMessage(msg) {
       break;
     case 'stats': setStats(msg.stats); break;
     case 'status': setStatus(msg.status); break;
+    case 'queState': setQueChannel(msg.que); break;
     case 'settings': setSettings(msg.settings); break;
     case 'demo': demo = msg.demo; setStatus(status); break;
     case 'music': renderMusic(msg.music); break;
@@ -108,9 +110,28 @@ $('connectForm').addEventListener('submit', (e) => {
   server.send({ type: 'connect', username: $('username').value });
 });
 $('disconnectBtn').onclick = () => server.send({ type: 'disconnect' });
+$('queForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  server.send({ type: 'queConnect', username: $('queUser').value });
+});
+$('queDisconnectBtn').onclick = () => server.send({ type: 'queDisconnect' });
+
+// Kênh thứ hai (bản đồ quê): máy chủ gửi kèm trạng thái kết nối trong queState
+function setQueChannel(q) {
+  if (!q) return;
+  if (document.activeElement !== $('queUser')) $('queUser').value = q.channel;
+  const pill = $('quePill');
+  const live = q.status === 'connected';
+  pill.dataset.state = q.enabled ? q.status : 'idle';
+  pill.textContent = !q.enabled ? 'Đã ngắt' : live ? `LIVE @${q.channel}` : {
+    idle: 'Chưa kết nối', connecting: 'Đang kết nối', reconnecting: 'Đang kết nối lại', error: 'Chưa LIVE', ended: 'LIVE đã kết thúc',
+  }[q.status] ?? q.status;
+  $('queStatusMsg').textContent = q.enabled ? (q.message ?? '') : 'Đã ngắt kết nối kênh thứ hai';
+}
 $('demoBtn').onclick = () => server.send({ type: 'demo', on: !demo });
 $('clearBtn').onclick = () => server.send({ type: 'clear' });
 $('clearMembersBtn').onclick = () => server.send({ type: 'clearMembers' });
+$('queResetBtn').onclick = () => confirm('Xóa điểm tất cả tỉnh trên bản đồ quê?') && server.send({ type: 'queReset' });
 $('reloadBtn').onclick = () => server.send({ type: 'reloadOverlays' });
 
 function setStatus(s) {

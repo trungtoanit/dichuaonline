@@ -7,6 +7,8 @@ const FILE = path.join(DATA_DIR, 'settings.json');
 export const DEFAULTS = {
   // Kênh TikTok điền sẵn trên dashboard, tự cập nhật theo lần kết nối gần nhất
   username: 'nguyen.trung.toan',
+  // Kênh TikTok của overlay bản đồ quê (/overlay/que): tự kết nối riêng khi overlay đang mở
+  queUsername: 'longnguyen782753',
   // Khi chủ kênh tự xem LIVE của mình, overlay nhà máy hiện "Ông chủ <tên>"
   ownerName: 'Toán',
   // Đổi tên hiển thị của người xem: { "tên TikTok hoặc username": "tên mới" }
@@ -55,6 +57,7 @@ export function sanitize(input, base = DEFAULTS) {
   const s = { ...base, ...input };
   return {
     username: String(s.username ?? '').trim().replace(/^@/, '').slice(0, 64) || DEFAULTS.username,
+    queUsername: String(s.queUsername ?? '').trim().replace(/^@/, '').slice(0, 64) || DEFAULTS.queUsername,
     ownerName: String(s.ownerName ?? '').trim().slice(0, 40) || DEFAULTS.ownerName,
     nameAliases: Object.fromEntries(Object.entries(s.nameAliases && typeof s.nameAliases === 'object' ? s.nameAliases : DEFAULTS.nameAliases)
       .map(([k, v]) => [String(k).trim().slice(0, 60), String(v).trim().slice(0, 60)]).filter(([k, v]) => k && v).slice(0, 200)),
