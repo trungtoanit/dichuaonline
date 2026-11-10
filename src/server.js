@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import crypto from 'node:crypto';
-import { execFile } from 'node:child_process';
 import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
 import path from 'node:path';
 import express from 'express';
@@ -54,8 +53,9 @@ const MACHINE_FILE = path.resolve('data', 'machines.json');
 const GIFT_FILE = path.resolve('data', 'gifts.json');
 let giftLog = [];
 try { giftLog = JSON.parse(fs.readFileSync(GIFT_FILE, 'utf8')); } catch {}
-function logGift(a) {
-  const entry = { at: Date.now(), username: a.username, nickname: a.nickname, gift: a.gift ?? 'Quà', count: a.count, coins: Number(a.coins) || 0 };
+// channel: kênh chính đang nhận quà
+function logGift(a, channel) {
+  const entry = { at: Date.now(), channel, username: a.username, nickname: a.nickname, gift: a.gift ?? 'Quà', count: a.count, coins: Number(a.coins) || 0 };
   giftLog.push(entry);
   if (giftLog.length > 3000) giftLog = giftLog.slice(-3000);
   fs.mkdirSync(path.dirname(GIFT_FILE), { recursive: true });
@@ -88,11 +88,11 @@ app.get('/overlay', (_req, res) => res.sendFile(path.join(PUBLIC, 'overlay.html'
 app.get('/overlay/chua', (_req, res) => res.sendFile(path.join(PUBLIC, 'overlay-chua.html')));
 app.get('/overlay/nha-may', (_req, res) => res.sendFile(path.join(PUBLIC, 'overlay-nha-may.html')));
 app.get('/overlay/que', (_req, res) => res.sendFile(path.join(PUBLIC, 'overlay-que.html')));
-// Giọng đọc tiếng Việt cho overlay: giọng AI tự nhiên của Microsoft (vi-VN-HoaiMyNeural, cần mạng),
-// lỗi thì dùng giọng "Linh" có sẵn trên macOS. File âm thanh lưu đệm theo nội dung câu.
+// Giọng đọc tiếng Việt cho overlay: chỉ dùng một giọng AI của Microsoft (vi-VN-HoaiMyNeural, cần mạng).
+// Không tạo được thì bỏ câu đó (không đổi sang giọng khác). File âm thanh lưu đệm theo nội dung câu.
 const TTS_DIR = path.resolve('data', 'tts');
 const TTS_KEEP = 300;
-const TTS_VOICE = process.env.TTS_VOICE || 'vi-VN-HoaiMyNeural'; // giọng nam: vi-VN-NamMinhNeural
+const TTS_VOICE = 'vi-VN-HoaiMyNeural';
 const ttsJobs = new Map(); // tên file -> Promise<đường dẫn file | null>
 function edgeSpeak(text, file) {
   return new Promise((resolve) => {
@@ -119,23 +119,17 @@ function edgeSpeak(text, file) {
     }, () => finish(false));
   });
 }
-function macSpeak(text, file) {
-  if (process.platform !== 'darwin') return Promise.resolve(false);
-  return new Promise((resolve) => {
-    execFile('say', ['-v', 'Linh', '-r', '190', '--file-format=WAVE', '--data-format=LEI16@22050', '-o', file, text], (err) => resolve(!err));
-  });
-}
 async function makeSpeech(text, base) {
   // dịch vụ giọng AI thỉnh thoảng ngắt giữa chừng một cách ngẫu nhiên: thử lại vài lần
-  for (let i = 0; i < 4; i++) if (await edgeSpeak(text, `${base}.mp3`)) return `${base}.mp3`;
-  console.error('[giọng đọc] giọng AI không phản hồi, dùng giọng máy Linh');
-  return (await macSpeak(text, `${base}.wav`)) ? `${base}.wav` : null;
+  for (let i = 0; i < 6; i++) if (await edgeSpeak(text, `${base}.mp3`)) return `${base}.mp3`;
+  console.error('[giọng đọc] giọng AI không phản hồi, bỏ qua câu:', text);
+  return null;
 }
 app.get('/tts', async (req, res) => {
   const text = String(req.query.text ?? '').normalize('NFC').replace(/\s+/g, ' ').trim().slice(0, 200);
   if (!text) return res.status(404).end();
   const base = path.join(TTS_DIR, crypto.createHash('sha1').update(`${TTS_VOICE}|${text}`).digest('hex'));
-  let file = [`${base}.mp3`, `${base}.wav`].find((f) => fs.existsSync(f));
+  let file = fs.existsSync(`${base}.mp3`) ? `${base}.mp3` : null;
   if (!file) {
     if (!ttsJobs.has(base)) {
       fs.mkdirSync(TTS_DIR, { recursive: true });
@@ -147,7 +141,7 @@ app.get('/tts', async (req, res) => {
     file = await ttsJobs.get(base);
     if (!file) return res.status(500).end();
   }
-  res.type(file.endsWith('.mp3') ? 'audio/mpeg' : 'audio/wav').sendFile(file);
+  res.type('audio/mpeg').sendFile(file);
 });
 app.get('/nhac', (_req, res) => res.sendFile(path.join(PUBLIC, 'nhac.html')));
 // ---------- Logo đoàn khách hàng audit (file do người dùng tải lên) ----------
@@ -403,7 +397,7 @@ function handleActivity(a) {
   if (a.kind === 'like') award(a, Math.min(POINTS.likeMax, a.count * POINTS.like));
   else if (a.kind === 'gift') {
     award(a, a.count * POINTS.gift);
-    if (!a.demo) logGift(a);
+    if (!a.demo) logGift(a, tiktok.username);
     rewardDonate(a);
   }
   else if (a.kind === 'share') {
@@ -411,11 +405,13 @@ function handleActivity(a) {
     thankShare(a);
   }
   else if (a.kind === 'follow') award(a, POINTS.follow);
-  if (a.demo || mainFeedsQue()) queActivity(a, a.demo ? demoQue : que);
+  // bản đồ quê nhận tương tác của cả kênh chính lẫn kênh thứ hai
+  queActivity(a, a.demo ? demoQue : que);
 }
 
 // ---------- Bản đồ quê (/overlay/que) ----------
-// Kênh thứ hai chạy song song kênh chính (queSource), tự kết nối khi máy chủ chạy; bấm Ngắt trên dashboard để tắt.
+// Bản đồ nhận tương tác từ cả kênh chính lẫn kênh thứ hai (queSource) chạy song song,
+// queSource tự kết nối khi máy chủ chạy; bấm Ngắt trên dashboard để tắt.
 // Kênh bản đồ trùng kênh chính đang kết nối thì dùng chung luồng đó, không mở thêm.
 const queSource = new TikTokSource();
 let queEnabled = true;
@@ -433,8 +429,9 @@ function queComment(c, game) {
   const hit = game.claim(alias(c), c.text);
   if (hit) broadcast({ type: 'queClaim', id: hit.id, changed: hit.changed, isNew: hit.isNew, member: { username: c.username, nickname: c.nickname, avatar: c.avatar }, demo: Boolean(c.demo) });
 }
-// Thả tim +1 điểm mỗi tim; tặng quà +5 điểm mỗi xu (giả lập không có giá xu thì tính 1 xu mỗi quà)
+// Thả tim +1 điểm mỗi tim; tặng quà +50 điểm mỗi xu (giả lập không có giá xu thì tính 1 xu mỗi quà)
 function queActivity(a, game) {
+  if (a.kind === 'share') return broadcast({ type: 'queShare', member: { username: a.username, nickname: alias(a).nickname, avatar: a.avatar }, demo: Boolean(a.demo) });
   const coins = Number(a.coins) || a.count;
   const points = a.kind === 'like' ? a.count : a.kind === 'gift' ? coins * GIFT_POINTS_PER_COIN : 0;
   if (!points) return;
@@ -456,7 +453,7 @@ function syncQueSource() {
   }
 }
 queSource.on('comment', (c) => queComment(c, que));
-queSource.on('activity', (a) => queActivity(a, que));
+queSource.on('activity', (a) => queActivity(a, que)); // quà kênh bản đồ chỉ cộng điểm bản đồ, không vào thống kê quà
 queSource.on('status', (s) => {
   console.log(`[bản đồ quê] ${s.message}`);
   sendQueState();
@@ -500,7 +497,7 @@ function handleComment(comment) {
   if (!comment.old && !(reason === 'Người dùng bị chặn' || reason?.startsWith('Từ khóa cấm'))) {
     broadcast({ type: 'present', member: members.get(comment.username) ?? { username: comment.username, nickname: comment.nickname, avatar: comment.avatar } });
   }
-  if (comment.demo || mainFeedsQue()) queComment(comment, comment.demo ? demoQue : que);
+  queComment(comment, comment.demo ? demoQue : que);
   sendStats();
 }
 

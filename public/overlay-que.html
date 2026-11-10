@@ -32,7 +32,8 @@
   }
   @keyframes spark { 0% { opacity: 0; transform: translateY(0); } 15% { opacity: .9; } 100% { opacity: 0; transform: translateY(-160px); } }
 
-  /* ----- Tiêu đề ----- */
+  /* ----- Tiêu đề: nền tối mờ dần phía sau để chữ không lẫn với bản đồ tràn khung ----- */
+  #topShade { position: absolute; left: 0; right: 0; top: 0; height: 520px; z-index: 3; pointer-events: none; background: linear-gradient(rgba(20, 4, 4, .96) 0%, rgba(20, 4, 4, .85) 55%, rgba(20, 4, 4, 0) 100%); }
   #title { position: absolute; left: 44px; top: 54px; z-index: 5; }
   #title h1 {
     margin: 0; font: 900 84px/1 "Be Vietnam Pro", sans-serif; letter-spacing: -1px;
@@ -90,6 +91,17 @@
   .lbl-score { font-weight: 900; font-size: 30px; fill: var(--gold); stroke-width: 6px; }
   .lbl-fan { font-weight: 700; font-size: 18px; fill: #fde68a; stroke-width: 4px; }
   .lead-lbl .lbl-name { font-size: 30px; }
+  /* tên tỉnh đang được zoom: bật lên, rồi nhún nhẹ và phát sáng */
+  .focus-lbl {
+    transform-box: fill-box; transform-origin: 50% 100%;
+    animation: focusPop .8s cubic-bezier(.2, 1.7, .4, 1) both, focusBob 1.4s ease-in-out .8s infinite;
+    filter: drop-shadow(0 0 10px rgba(251, 191, 36, .95));
+  }
+  .focus-lbl .lbl-name { fill: #fde68a; }
+  @keyframes focusPop { 0% { transform: scale(.3) translateY(30px); opacity: 0; } 55% { transform: scale(1.35); opacity: 1; } 100% { transform: scale(1.15); } }
+  @keyframes focusBob { 0%, 100% { transform: scale(1.15) translateY(0); } 50% { transform: scale(1.22) translateY(-8px); } }
+  .small-lbl .lbl-name { font-size: 15px; stroke-width: 4px; }
+  .small-lbl .lbl-score { font-size: 18px; stroke-width: 4px; }
   .lead-lbl .lbl-score { font-size: 42px; }
   .isl { fill: var(--gold-soft); }
   .isl-name { font-weight: 700; font-size: 20px; fill: #fde68a; stroke-width: 4px; }
@@ -149,6 +161,45 @@
   .confetti { position: absolute; width: 14px; height: 22px; border-radius: 3px; z-index: 19; pointer-events: none; animation: confetti 2.6s ease-in forwards; }
   @keyframes confetti { to { transform: translate(var(--dx), 1100px) rotate(var(--r)); opacity: .2; } }
 
+  /* ----- Popup cảm ơn tặng quà ----- */
+  #thanks {
+    position: absolute; left: 50%; top: 455px; z-index: 15; pointer-events: none;
+    display: flex; align-items: center; gap: 20px; min-width: 640px; max-width: 960px; padding: 18px 34px 18px 18px;
+    border-radius: 999px; background: linear-gradient(135deg, rgba(131, 24, 67, .96), rgba(76, 5, 25, .96));
+    border: 4px solid #f9a8d4; box-shadow: 0 0 40px rgba(244, 114, 182, .6), 0 16px 36px rgba(0, 0, 0, .6);
+    transform: translate(-50%, -30px) scale(.7); opacity: 0; transition: opacity .3s, transform .45s cubic-bezier(.2, 1.6, .4, 1);
+  }
+  #thanks.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  #thanks.big { background: linear-gradient(135deg, rgba(180, 83, 9, .97), rgba(120, 30, 5, .97)); border-color: #fde68a; box-shadow: 0 0 60px rgba(251, 191, 36, .8), 0 16px 36px rgba(0, 0, 0, .6); }
+  #thanks .av { width: 104px; height: 104px; flex: none; border-radius: 50%; object-fit: cover; border: 5px solid #fff; background: #db2777; display: grid; place-items: center; font: 900 46px/1 "Be Vietnam Pro", sans-serif; color: #fff; }
+  #thanks .ic { position: absolute; left: 86px; top: 78px; font-size: 46px; animation: giftWiggle .6s ease-in-out infinite alternate; }
+  @keyframes giftWiggle { from { transform: rotate(-14deg) scale(1); } to { transform: rotate(14deg) scale(1.15); } }
+  #thanks .t1 { font: 800 30px/1.15 "Be Vietnam Pro", sans-serif; color: #fce7f3; }
+  #thanks .t1 b { color: #fff; font-weight: 900; }
+  #thanks .t2 { margin-top: 4px; font: 900 40px/1.1 "Be Vietnam Pro", sans-serif; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 660px; }
+  #thanks .t3 { margin-top: 6px; font: 800 28px/1.2 "Be Vietnam Pro", sans-serif; color: var(--gold); }
+  #thanks .t3.hint { color: #fecaca; font-size: 24px; font-weight: 700; white-space: nowrap; }
+
+  /* ----- Pháo hoa khi có người tặng quà ----- */
+  .fw-spark {
+    position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; z-index: 14; pointer-events: none;
+    background: var(--c); box-shadow: 0 0 10px var(--c), 0 0 20px var(--c);
+    animation: fwBurst var(--t) cubic-bezier(.15, .7, .3, 1) forwards;
+  }
+  @keyframes fwBurst {
+    0% { transform: translate(0, 0) scale(1.4); opacity: 1; }
+    70% { opacity: 1; }
+    100% { transform: translate(var(--dx), calc(var(--dy) + 120px)) scale(.3); opacity: 0; }
+  }
+  .fw-rocket {
+    position: absolute; width: 6px; height: 26px; margin-left: -3px; border-radius: 3px; z-index: 14; pointer-events: none;
+    background: linear-gradient(#fff, var(--c) 40%, transparent); box-shadow: 0 0 12px var(--c);
+    animation: fwRise .55s ease-out forwards;
+  }
+  @keyframes fwRise { from { transform: translateY(0); opacity: 1; } to { transform: translateY(var(--rise)); opacity: .9; } }
+  .fw-flash { position: absolute; width: 180px; height: 180px; margin: -90px 0 0 -90px; border-radius: 50%; z-index: 13; pointer-events: none; background: radial-gradient(var(--c), transparent 65%); animation: fwFlash .6s ease-out forwards; }
+  @keyframes fwFlash { from { transform: scale(.2); opacity: .9; } to { transform: scale(1.6); opacity: 0; } }
+
   /* ----- Người vừa nhận quê ----- */
   #claims { position: absolute; left: 30px; top: 1010px; width: 360px; z-index: 5; display: flex; flex-direction: column; gap: 10px; }
   .claim {
@@ -167,24 +218,26 @@
 <body>
 <div id="frame">
   <div id="sparks"></div>
+  <div id="topShade"></div>
   <div id="title">
     <h1>BẢN ĐỒ<small>QUÊ HƯƠNG</small></h1>
     <div id="leader">Bình luận tên quê để tham gia!</div>
   </div>
   <div id="chan" data-state="idle"></div>
-  <div id="how"><span>💬 Bình luận <b>tên tỉnh</b> để nhận quê</span><span>❤️ Thả tim <b>+1 điểm</b></span><span>🎁 1 xu <b>+5 điểm</b></span></div>
+  <div id="how"><span>💬 Bình luận <b>tên tỉnh</b> để nhận quê</span><span>❤️ Thả tim <b>+1 điểm</b></span><span>🎁 1 xu <b>+50 điểm</b></span></div>
   <div id="mapWrap"><svg id="map" viewBox="-43 -322 1192 2119" aria-label="Bản đồ Việt Nam"></svg></div>
   <div id="rightCol">
   <div id="board"><h3>🏆 QUÊ AI MẠNH NHẤT</h3><ol id="boardList"></ol></div>
   <div id="gifts">
     <h3>🎁 TẶNG QUÀ CHO QUÊ</h3>
-    <div class="row"><span>🌹 1 xu</span><b>+5 điểm</b></div>
-    <div class="row"><span>🎁 5 xu</span><b>+25 điểm</b></div>
-    <div class="row"><span>💎 10 xu</span><b>+50 điểm</b></div>
+    <div class="row"><span>🌹 1 xu</span><b>+50 điểm</b></div>
+    <div class="row"><span>🎁 5 xu</span><b>+250 điểm</b></div>
+    <div class="row"><span>💎 10 xu</span><b>+500 điểm</b></div>
     <div class="note">Mốc 50 · 100 · 500 điểm: pháo hoa 🎉</div>
   </div>
   </div>
   <div id="mile"><div class="badge"><div class="big" id="mileBig"></div><div class="sub" id="mileSub"></div></div></div>
+  <div id="thanks" role="status"></div>
   <div id="claims"></div>
 </div>
 
@@ -203,6 +256,8 @@
   };
   const fmt = new Intl.NumberFormat('vi-VN');
   const nameOf = (id) => PROVINCE_BY_ID.get(id)?.name ?? id;
+  // tên ghi trên màn hình (ngắn hơn nếu có, vd. HCM); giọng đọc vẫn dùng nameOf
+  const labelOf = (id) => PROVINCE_BY_ID.get(id)?.label ?? nameOf(id);
 
   // ---------- Co giãn khung 1080×1920 theo nguồn; ?an-toan thu nhỏ để điện thoại màn dài không cắt hai mép ----------
   const params = new URLSearchParams(location.search);
@@ -307,7 +362,7 @@
     }
     animate();
     renderBoard(ranked);
-    renderLabels(ranked);
+    renderLabels();
   }
 
   // Nâng / hạ tỉnh mượt: dịch dần độ cao hiện tại tới độ cao đích
@@ -345,16 +400,33 @@
   // ---------- Nhãn tỉnh có điểm (10 tỉnh cao nhất) ----------
   const LABEL_MAX = 10;
   let labels = []; // { id, g }
-  function renderLabels(ranked) {
+  // Tỉnh nào có người nhận quê hoặc có điểm đều hiện tên: 10 tỉnh cao nhất và tỉnh đang zoom chữ to, còn lại chữ nhỏ.
+  // Vẽ chữ nhỏ trước để chữ to nằm trên.
+  const FOCUS_POP_MS = 800; // khớp thời lượng hiệu ứng focusPop trong CSS
+  function renderLabels() {
     labelLayer.replaceChildren();
-    labels = ranked.slice(0, LABEL_MAX).map(([id, s], i) => {
-      const g = el('g', { class: i === 0 ? 'lead-lbl' : '' }, labelLayer);
-      const name = el('text', { 'text-anchor': 'middle', class: 'lbl-name', y: i === 0 ? -44 : -34 }, g);
-      name.textContent = nameOf(id);
-      const score = el('text', { 'text-anchor': 'middle', class: 'lbl-score', y: 0 }, g);
+    const active = Object.entries(state).filter(([id, s]) => prov.has(id) && (s.score > 0 || s.people > 0))
+      .sort((a, b) => (b[1].score - a[1].score) || (b[1].people - a[1].people));
+    const big = (id, i) => i < LABEL_MAX || id === camId;
+    const order = [...active.entries()].sort(([ia, [a]], [ib, [b]]) => big(a, ia) - big(b, ib));
+    labels = order.map(([i, [id, s]]) => {
+      const isBig = big(id, i);
+      const lead = id === leaderId;
+      const g = el('g', { class: lead ? 'lead-lbl' : isBig ? '' : 'small-lbl' }, labelLayer);
+      // lớp trong để chạy hiệu ứng (lớp ngoài giữ vị trí bằng thuộc tính transform)
+      const inner = el('g', {}, g);
+      if (id === camId) {
+        inner.setAttribute('class', 'focus-lbl');
+        // nhãn được vẽ lại liên tục: lùi thời điểm bắt đầu hiệu ứng để chạy tiếp, không giật lại từ đầu
+        const e = Date.now() - camAt;
+        inner.style.animationDelay = `${-e}ms, ${FOCUS_POP_MS - e}ms`;
+      }
+      const name = el('text', { 'text-anchor': 'middle', class: 'lbl-name', y: lead ? -44 : isBig ? -34 : -22 }, inner);
+      name.textContent = labelOf(id);
+      const score = el('text', { 'text-anchor': 'middle', class: 'lbl-score', y: 0 }, inner);
       score.textContent = fmt.format(s.score);
-      if (i === 0 && s.fan) {
-        const fan = el('text', { 'text-anchor': 'middle', class: 'lbl-fan', y: 26 }, g);
+      if (lead && s.fan) {
+        const fan = el('text', { 'text-anchor': 'middle', class: 'lbl-fan', y: 26 }, inner);
         fan.textContent = `🥇 ${s.fan.nickname}`.slice(0, 24);
       }
       return { id, g };
@@ -384,7 +456,7 @@
     box.classList.toggle('has', Boolean(leaderId));
     if (!leaderId) return void (box.textContent = 'Bình luận tên quê để tham gia!');
     box.append(Object.assign(document.createElement('span'), { className: 'cup', textContent: '🏆' }),
-      Object.assign(document.createElement('b'), { textContent: nameOf(leaderId) }), ' đang dẫn đầu');
+      Object.assign(document.createElement('b'), { textContent: labelOf(leaderId) }), ' đang dẫn đầu');
     if (!first) {
       box.classList.remove('pop');
       void box.offsetWidth;
@@ -406,7 +478,7 @@
     ranked.slice(0, 5).forEach(([id, s], i) => {
       const li = document.createElement('li');
       const m = Object.assign(document.createElement('span'), { className: 'm', textContent: MEDALS[i] });
-      const n = Object.assign(document.createElement('span'), { className: 'n', textContent: nameOf(id) });
+      const n = Object.assign(document.createElement('span'), { className: 'n', textContent: labelOf(id) });
       n.appendChild(Object.assign(document.createElement('small'), { textContent: `👥 ${fmt.format(s.people || 0)} người${s.fan ? ` · ${s.fan.nickname}` : ''}` }));
       const sc = Object.assign(document.createElement('span'), { className: 's', textContent: fmt.format(s.score) });
       li.append(m, n, sc);
@@ -458,7 +530,7 @@
     t.className = 't';
     t.appendChild(Object.assign(document.createElement('div'), { textContent: member.nickname }));
     const line = document.createElement('div');
-    line.append(changed ? '🏠 về quê ' : '🏠 ', Object.assign(document.createElement('b'), { textContent: nameOf(id) }));
+    line.append(changed ? '🏠 về quê ' : '🏠 ', Object.assign(document.createElement('b'), { textContent: labelOf(id) }));
     t.appendChild(line);
     div.appendChild(t);
     box.prepend(div);
@@ -473,7 +545,7 @@
   const ZOOM = 2.4, HOLD_MS = 2000, BACK_MS = 3500;
   let camId = null, camAt = 0, camPending = null, camPendingTimer = 0, camBackTimer = 0;
   // Âm thanh vui khi zoom vào tỉnh (tạo bằng Web Audio, không cần file). ?am-thanh=0 để tắt
-  const soundOn = params.get('am-thanh') !== '0' && !params.has('preview'); // xem trước trên dashboard thì im lặng
+  const soundOn = params.get('am-thanh') !== '0';
   let actx = null;
   const JINGLES = [
     [[523, 0], [659, 0.09], [784, 0.18], [1047, 0.27]],          // đô-mi-son-đố đi lên
@@ -520,6 +592,7 @@
 
   function setCam(id) {
     camId = id;
+    renderLabels();
     camAt = Date.now();
     const p = id && prov.get(id);
     if (!p) return void (cam.style.transform = '');
@@ -547,6 +620,145 @@
     setCam(id);
   }
 
+  // ---------- Pháo hoa khi có người tặng quà: quà càng to càng nhiều chùm pháo ----------
+  const FW_COLORS = ['#fbbf24', '#f472b6', '#22d3ee', '#a3e635', '#f87171', '#c084fc', '#fff7d6'];
+  let fwBusyUntil = 0;
+  function fireworks(coins = 1) {
+    const now = Date.now();
+    // quà nhỏ dồn dập: tối đa một đợt mỗi 0,7 giây; quà từ 10 xu luôn bắn
+    if (coins < 10 && now < fwBusyUntil) return;
+    fwBusyUntil = now + 700;
+    const bursts = coins >= 100 ? 7 : coins >= 30 ? 5 : coins >= 10 ? 4 : coins >= 5 ? 2 : 1;
+    for (let b = 0; b < bursts; b++) setTimeout(() => launch(coins), b * 260);
+    fwSound(bursts);
+  }
+  function launch(coins) {
+    const x = 140 + Math.random() * 800;
+    const y = 560 + Math.random() * 520;           // điểm nổ: giữa màn hình, dưới tiêu đề
+    const startY = 1880;
+    const c = FW_COLORS[Math.floor(Math.random() * FW_COLORS.length)];
+    const rocket = document.createElement('div');
+    rocket.className = 'fw-rocket';
+    rocket.style.cssText = `left:${x}px;top:${startY}px;--c:${c};--rise:${y - startY}px`;
+    frame.appendChild(rocket);
+    setTimeout(() => {
+      rocket.remove();
+      const flash = document.createElement('div');
+      flash.className = 'fw-flash';
+      flash.style.cssText = `left:${x}px;top:${y}px;--c:${c}`;
+      frame.appendChild(flash);
+      setTimeout(() => flash.remove(), 650);
+      const n = coins >= 10 ? 46 : 32;
+      const radius = coins >= 10 ? 260 : 190;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + Math.random() * 0.2;
+        const r = radius * (0.55 + Math.random() * 0.45);
+        const sp = document.createElement('div');
+        sp.className = 'fw-spark';
+        const col = Math.random() < 0.75 ? c : FW_COLORS[Math.floor(Math.random() * FW_COLORS.length)];
+        sp.style.cssText = `left:${x}px;top:${y}px;--c:${col};--dx:${(Math.cos(a) * r).toFixed(0)}px;--dy:${(Math.sin(a) * r).toFixed(0)}px;--t:${(1.1 + Math.random() * 0.6).toFixed(2)}s`;
+        frame.appendChild(sp);
+        setTimeout(() => sp.remove(), 1800);
+      }
+    }, 550);
+  }
+  // tiếng pháo: vút lên rồi nổ lốp bốp (Web Audio, theo ?am-thanh)
+  function fwSound(bursts) {
+    if (!soundOn) return;
+    try {
+      actx ??= new AudioContext();
+      if (actx.state === 'suspended') actx.resume();
+      const out = actx.createGain();
+      out.gain.value = 0.18;
+      out.connect(actx.destination);
+      for (let b = 0; b < Math.min(bursts, 4); b++) {
+        const t0 = actx.currentTime + 0.05 + b * 0.26;
+        const wh = actx.createOscillator(), wg = actx.createGain();
+        wh.type = 'sine';
+        wh.frequency.setValueAtTime(500, t0);
+        wh.frequency.exponentialRampToValueAtTime(1800, t0 + 0.5);
+        wg.gain.setValueAtTime(0.0001, t0);
+        wg.gain.exponentialRampToValueAtTime(0.12, t0 + 0.1);
+        wg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.52);
+        wh.connect(wg).connect(out);
+        wh.start(t0);
+        wh.stop(t0 + 0.55);
+        // tiếng nổ: nhiễu trắng tắt nhanh
+        const len = Math.floor(actx.sampleRate * 0.6);
+        const buf = actx.createBuffer(1, len, actx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+        const ns = actx.createBufferSource(), ng = actx.createGain(), lp = actx.createBiquadFilter();
+        ns.buffer = buf;
+        lp.type = 'lowpass';
+        lp.frequency.value = 1800;
+        ng.gain.value = 0.9;
+        ns.connect(lp).connect(ng).connect(out);
+        ns.start(t0 + 0.55);
+      }
+    } catch {}
+  }
+
+  // ---------- Popup cảm ơn tặng quà: lần lượt từng người, cùng người tặng tiếp thì cộng dồn ----------
+  const THANKS_MS = 3400, THANKS_QUEUE_MAX = 6;
+  const thanksQueue = [];
+  let thanksNow = null, thanksTimer = 0;
+  function thankGift(msg) {
+    const same = (t) => t && t.username === msg.member.username;
+    const add = (t) => {
+      t.count += msg.count || 1;
+      t.coins += msg.coins || 0;
+      t.points += msg.points || 0;
+      if (t.gift !== msg.gift) t.gift = null;
+      t.id = msg.id ?? t.id;
+    };
+    if (same(thanksNow)) {
+      add(thanksNow);
+      renderThanks(thanksNow);
+      clearTimeout(thanksTimer);
+      thanksTimer = setTimeout(nextThanks, THANKS_MS);
+      return;
+    }
+    const waiting = thanksQueue.find(same);
+    if (waiting) return add(waiting);
+    thanksQueue.push({ username: msg.member.username, member: msg.member, gift: msg.gift, count: msg.count || 1, coins: msg.coins || 0, points: msg.points || 0, id: msg.id });
+    // hàng chờ dài: bỏ người tặng ít nhất
+    if (thanksQueue.length > THANKS_QUEUE_MAX) thanksQueue.splice(thanksQueue.indexOf(thanksQueue.reduce((a, b) => (b.coins < a.coins ? b : a))), 1);
+    if (!thanksNow) nextThanks();
+  }
+  function nextThanks() {
+    const box = $('thanks');
+    if (thanksNow) {
+      box.classList.remove('show');
+      thanksNow = null;
+      return void (thanksTimer = setTimeout(nextThanks, 350));
+    }
+    const t = thanksQueue.shift();
+    if (!t) return;
+    thanksNow = t;
+    renderThanks(t);
+    void box.offsetWidth;
+    box.classList.add('show');
+    thanksTimer = setTimeout(nextThanks, THANKS_MS);
+  }
+  function renderThanks(t) {
+    const box = $('thanks');
+    box.classList.toggle('big', t.coins >= 10);
+    box.replaceChildren();
+    if (t.member.avatar) box.appendChild(Object.assign(document.createElement('img'), { className: 'av', src: t.member.avatar, alt: '' }));
+    else box.appendChild(Object.assign(document.createElement('div'), { className: 'av', textContent: initials(t.member.nickname) }));
+    box.appendChild(Object.assign(document.createElement('div'), { className: 'ic', textContent: t.coins >= 10 ? '💎' : '🎁' }));
+    const text = document.createElement('div');
+    const t1 = Object.assign(document.createElement('div'), { className: 't1' });
+    t1.append('💖 Cảm ơn ', Object.assign(document.createElement('b'), { textContent: t.member.nickname }));
+    const gift = t.gift ? `${t.count > 1 ? `${t.count} ` : ''}${giftWord(t.gift)}` : `${t.coins} xu quà`;
+    const t2 = Object.assign(document.createElement('div'), { className: 't2', textContent: `đã tặng ${gift}` });
+    const t3 = Object.assign(document.createElement('div'), { className: t.id ? 't3' : 't3 hint' });
+    t3.textContent = t.id ? `+${fmt.format(t.points)} điểm cho ${labelOf(t.id)} 🎉` : '💬 Bình luận tên quê để được cộng điểm!';
+    text.append(t1, t2, t3);
+    box.appendChild(text);
+  }
+
   // ---------- Ăn mừng khi một tỉnh chạm mốc điểm ----------
   const mileQueue = [];
   let mileBusy = false;
@@ -560,7 +772,7 @@
     mileBusy = true;
     const [id, milestone] = item;
     $('mileBig').textContent = `🎉 ${fmt.format(milestone)} ĐIỂM 🎉`;
-    $('mileSub').textContent = `${nameOf(id)} cán mốc!`;
+    $('mileSub').textContent = `${labelOf(id)} cán mốc!`;
     $('mile').classList.add('show');
     fanfare();
     const colors = ['#fbbf24', '#f472b6', '#22d3ee', '#a3e635', '#f87171', '#fff'];
@@ -617,24 +829,15 @@
     announceLead = true;
   }
 
-  // ---------- Giọng đọc tiếng Việt: máy chủ tạo file giọng (/tts), dự phòng Web Speech của trình duyệt. ?doc=0 để tắt ----------
+  // ---------- Giọng đọc tiếng Việt: một giọng AI Microsoft do máy chủ tạo (/tts). ?doc=0 để tắt ----------
   // Ưu tiên: lội ngược dòng (3) > cảm ơn quà (2) > chào thành viên mới (1) > nhắc tỉnh dẫn đầu (0)
-  const voiceOn = params.get('doc') !== '0' && !params.has('preview');
-  const webSpeech = 'speechSynthesis' in window;
+  const voiceOn = params.get('doc') !== '0';
   const VOICE_QUEUE_MAX = 4;
-  let viVoice = null;
-  const pickVoice = () => {
-    const vs = speechSynthesis.getVoices().filter((v) => /^vi/i.test(v.lang));
-    viVoice = vs.find((v) => /linh|google/i.test(v.name)) ?? vs[0] ?? null;
-  };
-  if (voiceOn && webSpeech) {
-    pickVoice();
-    speechSynthesis.onvoiceschanged = pickVoice;
-  }
   const voiceQueue = []; // { text, pri, key, data }
-  let speaking = false, voiceWatchdog = 0;
+  let speaking = false, voiceWatchdog = 0, lastSpokeAt = Date.now();
   // Tên đọc được: bỏ emoji/ký tự lạ, cắt ngắn
-  const sayName = (n) => String(n ?? '').normalize('NFC').replace(/[^\p{L}\p{N}\s.]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 24) || 'bạn';
+  // NFKC đổi chữ kiểu cách (𝓝𝓱𝓾, ｈｏａ) về chữ thường để giọng đọc đọc được
+  const sayName = (n) => String(n ?? '').normalize('NFKC').replace(/[^\p{L}\p{N}\s.]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 24) || 'bạn';
   function say(text, pri, key = null, merge = null) {
     if (!voiceOn) return;
     const same = key && voiceQueue.find((v) => v.key === key);
@@ -660,29 +863,19 @@
     const done = () => {
       if (!speaking) return;
       speaking = false;
+      lastSpokeAt = Date.now();
       clearTimeout(voiceWatchdog);
       setTimeout(speakNext, 350);
     };
     // câu dài cũng không quá 15 giây: tự chuyển câu nếu trình duyệt không báo phát xong
-    voiceWatchdog = setTimeout(() => { audio.pause(); if (webSpeech) speechSynthesis.cancel(); done(); }, 15000);
+    // giọng AI có lúc mất vài giây mới tạo xong câu mới
+    voiceWatchdog = setTimeout(() => { audio.pause(); done(); }, 25000);
     const audio = new Audio(`/tts?text=${encodeURIComponent(text)}`);
     audio.volume = 1;
     audio.onended = done;
-    let fellBack = false;
-    audio.onerror = () => {
-      // máy chủ không tạo được giọng (không phải macOS): thử giọng của trình duyệt
-      if (fellBack) return;
-      fellBack = true;
-      if (!webSpeech || !viVoice) return done();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'vi-VN';
-      u.voice = viVoice;
-      u.rate = 1.08;
-      u.onend = done;
-      u.onerror = done;
-      speechSynthesis.speak(u);
-    };
-    audio.play().catch(() => audio.onerror());
+    // không tạo được giọng: bỏ câu này, đọc câu sau
+    audio.onerror = done;
+    audio.play().catch(done);
   }
 
   const GIFT_NAMES = { Rose: 'hoa hồng', Rosa: 'bó hoa Rosa', 'Finger Heart': 'trái tim', TikTok: 'quà TikTok', GG: 'quà GG', 'Ice Cream Cone': 'cây kem', Perfume: 'nước hoa', Doughnut: 'bánh donut' };
@@ -720,16 +913,59 @@
     lastComebackAt = Date.now();
     say(`Lội ngược dòng! ${nameOf(newId)} vượt qua ${nameOf(oldId)}, vươn lên dẫn đầu!`, 3, 'comeback');
   }
+  // Vắng tiếng quá lâu (không ai tương tác): đọc luật chơi, xen kẽ nhắc tỉnh dẫn đầu cho LIVE luôn có tiếng
+  const QUIET_MS = 35000;
+  const RULE_LINES = [
+    'Chào mừng cả nhà đến với Bản đồ quê hương! Bình luận tên tỉnh của mình để nhận quê nhé.',
+    'Luật chơi rất đơn giản: bình luận tên quê, sau đó mỗi lượt thả tim là cộng một điểm cho quê mình.',
+    'Tặng quà để quê mình bứt phá: một xu cộng năm mươi điểm, mười xu cộng năm trăm điểm!',
+    'Quê nào đông người, thả tim nhiều nhất sẽ dẫn đầu bản đồ. Quê bạn đang ở đâu rồi?',
+    'Tỉnh nào chạm mốc năm mươi, một trăm, năm trăm điểm sẽ có pháo hoa ăn mừng đó nha!',
+    'Ai mới vào thì bình luận tên tỉnh, ví dụ Nghệ An, Hà Nội, Sài Gòn, để về đội quê mình nha!',
+  ];
   const LEAD_LINES = [
     (p, n) => `${p} đang dẫn đầu với ${n} điểm. Các tỉnh khác cố lên!`,
     (p, n) => `Hiện tại ${p} dẫn đầu, ${n} điểm. Thả tim cho quê mình nào!`,
-    (p, n) => `${p} vẫn đang đứng đầu bảng với ${n} điểm!`,
+    (p, n) => `${p} vẫn đang đứng đầu bảng với ${n} điểm! Quê nào sẽ lội ngược dòng đây?`,
   ];
+  // Kêu gọi chia sẻ LIVE cho bạn bè
+  const SHARE_LINES = [
+    'Cả nhà ơi, bấm nút chia sẻ, gửi LIVE này cho bạn bè đồng hương vào chơi cùng nha!',
+    'Muốn quê mình dẫn đầu thì rủ thêm đồng hương! Bấm chia sẻ LIVE cho bạn bè ngay nào!',
+    'Chia sẻ LIVE cho bạn bè, người thân ở quê để cùng thả tim kéo quê mình lên top nhé!',
+    'Một lượt chia sẻ là thêm đồng đội cho quê mình. Bấm chia sẻ giúp kênh nha cả nhà!',
+    'Đừng quên bấm theo dõi và chia sẻ LIVE cho bạn bè để quê mình đông vui hơn nhé!',
+  ];
+  const pick = (list) => list[Math.floor(Math.random() * list.length)];
+  // Vắng tiếng: lần lượt đọc luật chơi → nhắc tỉnh dẫn đầu → kêu gọi chia sẻ
+  let quietTurn = 0;
+  setInterval(() => {
+    if (speaking || voiceQueue.length || Date.now() - lastSpokeAt < QUIET_MS) return;
+    lastSpokeAt = Date.now(); // tránh xếp hàng lặp lại trong lúc chờ tạo giọng
+    const turn = quietTurn++ % 3;
+    if (turn === 1 && leaderId) {
+      const f = pick(LEAD_LINES);
+      say(() => f(nameOf(leaderId), fmt.format(state[leaderId]?.score ?? 0)), 0, 'lead');
+    } else if (turn === 2) say(pick(SHARE_LINES), 0, 'share');
+    else say(pick(RULE_LINES), 0, 'rules');
+  }, 5000);
+  // LIVE đông vẫn kêu gọi chia sẻ khoảng 3 phút một lần
+  setInterval(() => say(pick(SHARE_LINES), 1, 'share'), 180000);
+  // Cảm ơn người vừa chia sẻ LIVE
+  const SHARE_THANKS = [
+    (n) => `Cảm ơn ${n} đã chia sẻ LIVE cho bạn bè!`,
+    (n) => `Cảm ơn ${n} đã chia sẻ, quê mình sắp đông vui rồi!`,
+    (n) => `${n} vừa chia sẻ LIVE, cảm ơn bạn nhiều nha!`,
+  ];
+  function voiceShare(member) {
+    say(pick(SHARE_THANKS)(sayName(member.nickname)), 2, `shared:${member.username}`);
+  }
+  // LIVE đông (luôn có câu để đọc) vẫn nhắc tỉnh dẫn đầu khoảng 2 phút một lần
   setInterval(() => {
     if (!leaderId) return;
     const f = LEAD_LINES[Math.floor(Math.random() * LEAD_LINES.length)];
-    say(() => f(nameOf(leaderId), fmt.format(state[leaderId]?.score ?? 0)), 0, 'lead');
-  }, 75000);
+    say(() => f(nameOf(leaderId), fmt.format(state[leaderId]?.score ?? 0)), 1, 'lead');
+  }, 120000);
 
   // ---------- Kết nối máy chủ ----------
   connectWS((msg) => {
@@ -745,7 +981,8 @@
         renderSoon();
         break;
       }
-      case 'queGift': voiceGift(msg); break;
+      case 'queGift': voiceGift(msg); thankGift(msg); fireworks(msg.coins); break;
+      case 'queShare': voiceShare(msg.member); break;
       case 'queLike': {
         const s = (state[msg.id] ??= { score: 0, people: 0, fan: null });
         s.score = msg.total;

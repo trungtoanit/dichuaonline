@@ -1,11 +1,11 @@
-// Trò chơi "bản đồ quê": người xem bình luận tên tỉnh để nhận quê, sau đó mỗi tim +1 điểm, mỗi xu quà +5 điểm cho tỉnh đó.
+// Trò chơi "bản đồ quê": người xem bình luận tên tỉnh để nhận quê, sau đó mỗi tim +1 điểm, mỗi xu quà +50 điểm cho tỉnh đó.
 // Quê của từng người giữ qua các buổi LIVE; điểm các tỉnh giữ tới khi bấm xoá trên dashboard.
 import fs from 'node:fs';
 import path from 'node:path';
 import { detectProvince, PROVINCE_BY_ID } from '../public/provinces.js';
 
 const FANS_MAX = 300; // số người góp điểm giữ lại cho mỗi tỉnh
-export const GIFT_POINTS_PER_COIN = 5;     // tặng quà: 1 xu = +5 điểm cho quê
+export const GIFT_POINTS_PER_COIN = 50;    // tặng quà: 1 xu = +50 điểm cho quê
 export const MILESTONES = [50, 100, 500];  // mốc điểm của một tỉnh: overlay ăn mừng khi vượt qua
 
 export class QueGame {

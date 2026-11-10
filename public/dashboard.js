@@ -119,6 +119,10 @@ $('queDisconnectBtn').onclick = () => server.send({ type: 'queDisconnect' });
 // Kênh thứ hai (bản đồ quê): máy chủ gửi kèm trạng thái kết nối trong queState
 function setQueChannel(q) {
   if (!q) return;
+  if (queChannel !== q.channel) {
+    queChannel = q.channel;
+    renderGifts();
+  }
   if (document.activeElement !== $('queUser')) $('queUser').value = q.channel;
   const pill = $('quePill');
   const live = q.status === 'connected';
@@ -146,11 +150,7 @@ function setStatus(s) {
   $('demoBtn').setAttribute('aria-pressed', String(demo));
   tickLiveTime();
   // Phiên LIVE mới: bảng quà "Phiên này" tính lại từ đầu
-  if (live && s.liveSince && s.liveSince !== sessionStart) {
-    sessionStart = s.liveSince;
-    try { localStorage.setItem(SESSION_KEY, String(sessionStart)); } catch {}
-    renderGifts();
-  }
+  if (live) setSessionStart(s.username, s.liveSince);
 }
 
 // Đồng hồ thời gian LIVE: đếm từ lúc phiên bắt đầu (máy chủ gửi liveSince khi đang kết nối)
@@ -716,18 +716,28 @@ setInterval(loadTunnel, 15000); // đường hầm chạy lại thì địa ch�
 // ---------- Quà nhận được: tổng xu + ước tính tiền ----------
 let gifts = [];
 let giftScope = 'session';
-// Giờ bắt đầu phiên LIVE gần nhất (giữ lại sau khi tắt LIVE để vẫn xem được tổng phiên vừa rồi)
-const SESSION_KEY = 'giftSessionStart';
-var sessionStart = null;
-try { sessionStart = Number(localStorage.getItem(SESSION_KEY)) || null; } catch {}
+// Giờ bắt đầu phiên LIVE gần nhất của từng kênh (giữ lại sau khi tắt LIVE để vẫn xem được tổng phiên vừa rồi)
+const SESSION_KEY = 'giftSessionStarts';
+var sessionStarts = {};
+try { sessionStarts = JSON.parse(localStorage.getItem(SESSION_KEY)) || {}; } catch {}
+function setSessionStart(channel, since) {
+  if (!channel || !since || sessionStarts[channel] === since) return;
+  sessionStarts[channel] = since;
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify(sessionStarts)); } catch {}
+  renderGifts();
+}
+// Chỉ thống kê xu của kênh chính: bỏ quà kênh bản đồ quê (lỡ ghi trước đây)
+var queChannel = null;
 const RATE_KEY = 'giftRateVnd';
 try { const r = Number(localStorage.getItem(RATE_KEY)); if (r > 0) $('giftRate').value = r; } catch {}
 const fmtNum = (n) => Math.round(n).toLocaleString('vi-VN');
 function renderGifts() {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
-  const from = giftScope === 'session' ? (sessionStart ?? start.getTime()) : giftScope === 'today' ? start.getTime() : 0;
-  const list = gifts.filter((g) => g.at >= from);
+  // "Phiên này" tính theo giờ bắt đầu LIVE của đúng kênh nhận quà
+  const from = (g) => giftScope === 'session' ? (sessionStarts[g.channel] ?? start.getTime()) : giftScope === 'today' ? start.getTime() : 0;
+  // kênh bản đồ trùng kênh chính thì quà là của kênh chính, vẫn tính
+  const list = gifts.filter((g) => !(g.channel && g.channel === queChannel && g.channel !== status.username) && g.at >= from(g));
   const coins = list.reduce((s, g) => s + (g.coins || 0), 0);
   const rate = Number($('giftRate').value) || 0;
   $('giftCoins').textContent = fmtNum(coins);

@@ -156,7 +156,7 @@ export class TikTokSource extends EventEmitter {
       const g = giftInfo(data);
       const coins = g.coins * count; // số xu TikTok
       const u = toUser(data.user);
-      console.log(`[quà] @${u.username} tặng ${g.name} x${count} = ${coins} xu`);
+      console.log(`[quà → @${this.username}] @${u.username} tặng ${g.name} x${count} = ${coins} xu`);
       this.emit('activity', { ...u, kind: 'gift', count, coins, gift: g.name });
     };
     conn.on(WebcastEvent.GIFT, (data) => {

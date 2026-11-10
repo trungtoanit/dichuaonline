@@ -1,8 +1,9 @@
-// 63 tỉnh thành (trước sáp nhập 2025) cho trò chơi "bản đồ quê": tên hiển thị + cách người xem hay gõ.
+// 63 tỉnh thành (trước sáp nhập 2025) cho trò chơi "bản đồ quê": tên (giọng đọc dùng), label (tên ngắn ghi trên màn hình, nếu có)
+// và cách người xem hay gõ.
 // Dùng chung cho máy chủ (src/server.js) và overlay (public/overlay-que.html). Mã id khớp public/vn-map.js.
 export const PROVINCES = [
   { id: 'VN-HN', name: 'Hà Nội', aliases: ['ha noi', 'hn', 'thu do'] },
-  { id: 'VN-SG', name: 'TP. Hồ Chí Minh', aliases: ['ho chi minh', 'tp hcm', 'tphcm', 'hcm', 'sai gon', 'sg'] },
+  { id: 'VN-SG', name: 'Thành phố Hồ Chí Minh', label: 'HCM', aliases: ['ho chi minh', 'tp hcm', 'tphcm', 'hcm', 'sai gon', 'sg'] },
   { id: 'VN-HP', name: 'Hải Phòng', aliases: ['hai phong'] },
   { id: 'VN-DN', name: 'Đà Nẵng', aliases: ['da nang'] },
   { id: 'VN-CT', name: 'Cần Thơ', aliases: ['can tho'] },
